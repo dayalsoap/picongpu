@@ -459,7 +459,7 @@ public:
         __getTransactionEvent().waitForFinished();
 
         beginAdios();
-
+	// jai
         writeAdios((void*) &mThreadParams);
 
         endAdios();
