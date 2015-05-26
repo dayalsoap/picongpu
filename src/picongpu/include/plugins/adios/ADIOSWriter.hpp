@@ -479,7 +479,7 @@ private:
     void beginAdios()
     {
         std::stringstream full_filename;
-        full_filename << filename << "_" << mThreadParams.currentStep << ".bp";
+        full_filename << filename << ".bp";
 
         mThreadParams.fullFilename = full_filename.str();
         mThreadParams.adiosFileHandle = ADIOS_INVALID_HANDLE;
@@ -487,9 +487,9 @@ private:
         mThreadParams.fieldBfr = NULL;
         mThreadParams.fieldBfr = new float[mThreadParams.window.localDimensions.size.productOfComponents()];
 
-        std::stringstream adiosPathBase;
-        adiosPathBase << ADIOS_PATH_ROOT << mThreadParams.currentStep << "/";
-        mThreadParams.adiosBasePath = adiosPathBase.str();
+        //std::stringstream adiosPathBase;
+        //adiosPathBase << ADIOS_PATH_ROOT << mThreadParams.currentStep << "/";
+        mThreadParams.adiosBasePath = "";
 
         ADIOS_CMD(adios_init_noxml(mThreadParams.adiosComm));
     }
@@ -731,7 +731,7 @@ private:
         std::stringstream mpiTransportParams;
         mpiTransportParams << "num_aggregators=" << threadParams->adiosAggregators
             << ";num_ost=" << threadParams->adiosOST;
-        ADIOS_CMD(adios_select_method(threadParams->adiosGroupHandle, "MPI_AGGREGATE",
+        ADIOS_CMD(adios_select_method(threadParams->adiosGroupHandle, "MPI",
                 mpiTransportParams.str().c_str(), ""));
 
         /* define (sizes for) meta attributes */
@@ -778,7 +778,7 @@ private:
         /* open adios file. all variables need to be defined at this point */
         log<picLog::INPUT_OUTPUT > ("ADIOS: open file: %1%") % threadParams->fullFilename;
         ADIOS_CMD(adios_open(&(threadParams->adiosFileHandle), ADIOS_GROUP_NAME,
-                threadParams->fullFilename.c_str(), "w", threadParams->adiosComm));
+                threadParams->fullFilename.c_str(), "a", threadParams->adiosComm));
 
         if (threadParams->adiosFileHandle == ADIOS_INVALID_HANDLE)
             throw std::runtime_error("Failed to open ADIOS file");
