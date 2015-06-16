@@ -81,6 +81,7 @@
 
 #if (ENABLE_ADIOS == 1)
 #include "plugins/adios/ADIOSWriter.hpp"
+#include "plugins/ADIOSInSitu.hpp"
 #endif
 
 namespace picongpu
@@ -131,7 +132,8 @@ private:
       , InSituVolumeRenderer
 #endif
 #if (ENABLE_ADIOS == 1)
-      , adios::ADIOSWriter
+	, adios::ADIOSWriter
+	, adiosinsitu::ADIOSInSitu
 #endif
 #if (ENABLE_HDF5 == 1)
      , hdf5::HDF5Writer
