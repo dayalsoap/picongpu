@@ -317,6 +317,7 @@ private:
         HDINLINE void operator()(ThreadParams* params)
         {
 #ifndef __CUDA_ARCH__
+	    fprintf(stderr, "operator collectsfieldssizes 1\n");
             const uint32_t components = T::numComponents;
 
             // adios buffer size for this dataset (all components)
@@ -374,6 +375,7 @@ private:
 
         HINLINE void operator_impl(ThreadParams* params)
         {
+	    fprintf(stderr, "operator for collectsfieldssizes 2\n");
             const uint32_t components = GetNComponents<ValueType>::value;
 
             // adios buffer size for this dataset (all components)
@@ -915,11 +917,13 @@ private:
         threadParams->adiosFieldVarIds.clear();
         if (threadParams->isCheckpoint)
         {
+	    fprintf(stderr, "checkpoint collectfieldssizes\n");
             ForEach<FileCheckpointFields, CollectFieldsSizes<bmpl::_1> > forEachCollectFieldsSizes;
             forEachCollectFieldsSizes(threadParams);
         }
         else
         {
+	    fprintf(stderr, "noncheckpoint collectfieldssizes\n");
             ForEach<FileOutputFields, CollectFieldsSizes<bmpl::_1> > forEachCollectFieldsSizes;
             forEachCollectFieldsSizes(threadParams);
         }

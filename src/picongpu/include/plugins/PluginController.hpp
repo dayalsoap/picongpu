@@ -81,7 +81,7 @@
 
 #if (ENABLE_ADIOS == 1)
 #include "plugins/adios/ADIOSWriter.hpp"
-#include "plugins/ADIOSInSitu.hpp"
+#include "plugins/adios/ADIOSInSitu.hpp"
 #endif
 
 namespace picongpu
