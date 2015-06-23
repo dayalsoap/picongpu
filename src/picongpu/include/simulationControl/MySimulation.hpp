@@ -1,6 +1,7 @@
 /**
  * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
- *                     Richard Pausch, Alexander Debus, Marco Garten
+ *                     Richard Pausch, Alexander Debus, Marco Garten,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -43,6 +44,7 @@
 #include "fields/FieldB.hpp"
 #include "fields/FieldJ.hpp"
 #include "fields/FieldTmp.hpp"
+#include "particles/MallocMCBuffer.hpp"
 #include "fields/MaxwellSolver/Solvers.hpp"
 #include "fields/currentInterpolation/CurrentInterpolation.hpp"
 #include "fields/background/cellwiseOperation.hpp"
@@ -87,6 +89,7 @@ public:
     fieldE(NULL),
     fieldJ(NULL),
     fieldTmp(NULL),
+    mallocMCBuffer(NULL),
     myFieldSolver(NULL),
     myCurrentInterpolation(NULL),
     pushBGField(NULL),
@@ -241,6 +244,8 @@ public:
 
         __delete(fieldTmp);
 
+        __delete(mallocMCBuffer);
+
         __delete(myFieldSolver);
 
         __delete(myCurrentInterpolation);
@@ -289,6 +294,7 @@ public:
 
         // initializing the heap for particles
         mallocMC::initHeap(freeGpuMem);
+        this->mallocMCBuffer = new MallocMCBuffer();
 
         ForEach<VectorAllSpecies, particles::CallCreateParticleBuffer<bmpl::_1>, MakeIdentifier<bmpl::_1> > createParticleBuffer;
         createParticleBuffer(forward(particleStorage));
@@ -577,6 +583,7 @@ protected:
     FieldE *fieldE;
     FieldJ *fieldJ;
     FieldTmp *fieldTmp;
+    MallocMCBuffer *mallocMCBuffer;
 
     // field solver
     fieldSolver::FieldSolver* myFieldSolver;
@@ -585,7 +592,7 @@ protected:
     cellwiseOperation::CellwiseOperation< CORE + BORDER + GUARD >* pushBGField;
     cellwiseOperation::CellwiseOperation< CORE + BORDER + GUARD >* currentBGField;
 
-    typedef typename SeqToMap<VectorAllSpecies, TypeToPointerPair<bmpl::_1> >::type ParticleStorageMap;
+    typedef SeqToMap<VectorAllSpecies, TypeToPointerPair<bmpl::_1> >::type ParticleStorageMap;
     typedef PMacc::math::MapTuple<ParticleStorageMap> ParticleStorage;
 
     ParticleStorage particleStorage;
