@@ -17,7 +17,7 @@
  * along with PIConGPU.
  * If not, see <http://www.gnu.org/licenses/>.
  */
- 
+
 
 
 #pragma once
@@ -38,8 +38,8 @@ namespace rad_linear_frequencies
 {
 namespace SI
 {
-const double omega_min = 0.0;
-const double omega_max = 5.8869e17;
+const float_64 omega_min = 0.0;
+const float_64 omega_max = 5.8869e17;
 }
 
 const unsigned int N_omega = 1024; // number of frequencies
@@ -49,8 +49,8 @@ namespace rad_log_frequencies
 {
 namespace SI
 {
-const double omega_min = 1.0e14;
-const double omega_max = 1.0e17;
+const float_64 omega_min = 1.0e14;
+const float_64 omega_max = 1.0e17;
 }
 
 const unsigned int N_omega = 2048; // number of frequencies
@@ -69,22 +69,11 @@ namespace radiation_frequencies = rad_linear_frequencies;
 
 namespace radiationNyquist
 {
-  const float NyquistFactor = 0.5;
+  const float_32 NyquistFactor = 0.5;
 }
-
-
-}//namespace picongpu
-
-
-
-
 
 ///////////////////////////////////////////////////
 
-
-
-namespace picongpu
-{
 
   // corect treatment of coherent and incoherent  radiation from macroparticles
   // 1 = on  (slower and more memory, but correct quantitativ treatment)
@@ -104,13 +93,7 @@ namespace picongpu
   namespace radFormFactor = radFormFactor_CIC_3D;
 
 
-}//namespace picongpu
-
-
-
 ///////////////////////////////////////////////////////////
-
-
 
 
 namespace parameters
@@ -133,7 +116,7 @@ namespace parameters
 //diable (0) / enable (1)
 #define RAD_ACTIVATE_GAMMA_FILTER 0
 
-const float RadiationGamma = 5.;
+const float_32 RadiationGamma = 5.;
 
 const unsigned int N_observer = 128; // number of looking directions
 
@@ -143,10 +126,6 @@ const unsigned int N_observer = 128; // number of looking directions
 
 //////////////////////////////////////////////////
 
-
-
-namespace picongpu
-{
 
 // add a window function weighting to the radiation in order
 // to avoid ringing effects from sharpe boundaries

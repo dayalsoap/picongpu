@@ -1,6 +1,6 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Wen Fu, 
- *                     Marco Garten
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Wen Fu,
+ *                     Marco Garten, Alexander Grund
  *
  * This file is part of PIConGPU.
  *
@@ -50,14 +50,15 @@
 
 #include "particles/operations/Assign.hpp"
 #include "particles/operations/Deselect.hpp"
+#include "nvidia/atomic.hpp"
 
 namespace picongpu
 {
 
 using namespace PMacc;
 
-template<class MYFRAME, class OTHERFRAME, class Mapping>
-__global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, ParticlesBox<OTHERFRAME, simDim> otherBox, Mapping mapper)
+template<class MYFRAME, class OTHERFRAME, class T_ManipulateFunctor, class Mapping>
+__global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, ParticlesBox<OTHERFRAME, simDim> otherBox, T_ManipulateFunctor manipulateFunctor, Mapping mapper)
 {
     using namespace PMacc::particles::operations;
 
@@ -65,6 +66,7 @@ __global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, Partic
 
     __shared__ MYFRAME *myFrame;
     __shared__ bool isValid;
+    typedef typename Mapping::SuperCellSize SuperCellSize;
 
     __syncthreads(); /*wait that all shared memory is initialised*/
 
@@ -86,7 +88,16 @@ __global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, Partic
         PMACC_AUTO(parDest, ((*myFrame)[threadIdx.x]));
         PMACC_AUTO(parSrc, ((*frame)[threadIdx.x]));
         assign(parDest, parSrc);
+
+        const DataSpace<simDim> localCellIdx = block
+            + DataSpaceOperations<simDim>::map<SuperCellSize>(threadIdx.x)
+            - mapper.getGuardingSuperCells() * SuperCellSize::toRT();
+        manipulateFunctor(localCellIdx,
+                          parDest, parSrc,
+                          true, parSrc[multiMask_] == 1);
+
         __syncthreads();
+
         if (threadIdx.x == 0)
         {
             myBox.setAsLastFrame(*myFrame, block);
@@ -102,9 +113,9 @@ __global__ void kernelCloneParticles(ParticlesBox<MYFRAME, simDim> myBox, Partic
 }
 
 /* kernel must called with one dimension for blockSize */
-template<typename T_ParicleFunctor,typename T_ParBox,  class Mapping>
+template<typename T_ParticleFunctor,typename T_ParBox,  class Mapping>
 __global__ void kernelManipulateAllParticles(T_ParBox pb,
-                                             T_ParicleFunctor particleFunctor,
+                                             T_ParticleFunctor particleFunctor,
                                              Mapping mapper)
 {
     __shared__ typename T_ParBox::FrameType* frame;
@@ -140,7 +151,7 @@ __global__ void kernelManipulateAllParticles(T_ParBox pb,
     while (isValid)
     {
         PMACC_AUTO(particle, ((*frame)[linearThreadIdx]));
-        particleFunctor(localCellIdx, particle, isParticle);
+        particleFunctor(localCellIdx, particle, particle, isParticle, isParticle);
 
         __syncthreads();
         if (linearThreadIdx == 0)
@@ -377,7 +388,8 @@ struct PushParticlePerFrame
          */
         if (direction >= 2)
         {
-            atomicExch(&mustShift, 1); /*if we not use atomic we get a WAW error*/
+            /* if we did not use atomic we would get a WAW error */
+            nvidia::atomicAllExch(&mustShift, 1);
         }
     }
 };

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013 Axel Huebl, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera
  *
  * This file is part of PIConGPU.
  *
@@ -21,11 +21,12 @@
 
 
 #ifndef FIELDMANIPULATOR_KERNEL
-#define	FIELDMANIPULATOR_KERNEL
+#define    FIELDMANIPULATOR_KERNEL
 
 #include "types.h"
 #include "simulation_defines.hpp"
 #include "simulation_classTypes.hpp"
+#include "nvidia/atomic.hpp"
 
 namespace picongpu
 {
@@ -63,11 +64,11 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
         {
             if (direction[pos] < 0)
             {
-                factor = (float) (MappingDesc::SuperCellSize::toRT()[pos] + thickness - cell[pos] - 1);
+                factor = (float_32) (MappingDesc::SuperCellSize::toRT()[pos] + thickness - cell[pos] - 1);
             }
             else
             {
-                factor = (float) ((MappingDesc::SuperCellSize::toRT()[pos] + cell[pos]) - gCells[pos] + thickness);
+                factor = (float_32) ((MappingDesc::SuperCellSize::toRT()[pos] + cell[pos]) - gCells[pos] + thickness);
             }
 
         }
@@ -75,7 +76,7 @@ DINLINE void absorb(BoxedMemory field, uint32_t thickness, float_X absorber_stre
         if (factor <= float_X(0.0))
         {
             factor = float_X(0.0);
-            atomicExch(&finish, 1);
+            nvidia::atomicAllExch(&finish,1);
         }
         else
         {
@@ -110,5 +111,5 @@ __global__ void kernelAbsorbBorder(BoxedMemory field, uint32_t thickness, float_
 #endif
 }
 } //namespace
-#endif	/* FIELDMANIPULATOR_KERNEL */
+#endif    /* FIELDMANIPULATOR_KERNEL */
 

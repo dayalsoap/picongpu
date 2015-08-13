@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Marco Garten
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Marco Garten,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -22,7 +23,6 @@
 
 #include "types.h"
 #include "particles/frame_types.hpp"
-#include "basicOperations.hpp"
 
 #include "simulation_defines.hpp"
 
@@ -45,7 +45,7 @@ namespace picongpu
 
 using namespace PMacc;
 
-typedef typename FieldJ::DataBoxType J_DataBox;
+typedef FieldJ::DataBoxType J_DataBox;
 
 template<int workerMultiplier, class BlockDescription_, uint32_t AREA, class JBox, class ParBox, class Mapping, class FrameSolver>
 __global__ void kernelComputeCurrent(JBox fieldJ,
@@ -157,7 +157,7 @@ struct ComputeCurrentPerFrame
     }
 
 private:
-    const PMACC_ALIGN(deltaTime, float);
+    const PMACC_ALIGN(deltaTime, float_32);
 };
 
 template<class T_CurrentInterpolation, class T_Mapping>

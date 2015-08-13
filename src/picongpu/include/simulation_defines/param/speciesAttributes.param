@@ -1,5 +1,5 @@
 /**
- * Copyright 2014 Rene Widera, Marco Garten
+ * Copyright 2014-2015 Rene Widera, Marco Garten
  *
  * This file is part of PIConGPU.
  *
@@ -58,8 +58,9 @@ value_identifier(bool, radiationFlag, false);
 /** number of electrons bound to the atom / ion
  *
  * value type is float_X to avoid casts during the runtime
- * - float is also reasonable because effective charge numbers are possible
- * - only reasonable for ion species if ionization is enabled
+ * - float_X instead of integer types are reasonable because effective charge
+ *   numbers are possible
+ * - required for ion species if ionization is enabled
  *
  * \todo connect default to proton number
  */
@@ -79,6 +80,9 @@ alias(particlePusher);
 /*! alias for particle ionizer @see speciesDefinition.param */
 alias(ionizer);
 
+/*! alias for ionization energy container @see ionizationEnergies.param */
+alias(ionizationEnergies);
+
 /*! alias for particle to field interpolation @see species.param */
 alias(interpolation);
 
@@ -89,10 +93,27 @@ alias(current);
  * - only reasonable for atoms / ions / nuclei */
 alias(atomicNumbers);
 
-template<uint32_t T_commTag>
-struct CommunicationId
-{
-    static const uint32_t CommunicationTag=T_commTag;
-};
+/*! alias for particle mass ratio
+ *
+ *  mass ratio between base particle @see `speciesConstants.param` SI::BASE_MASS_SI
+ *  and a user defined species
+ */
+alias(massRatio);
+
+/*! alias for particle charge ratio
+ *
+ *  charge ratio between base particle @see `speciesConstants.param` SI::BASE_CHARGE_SI
+ *  and a user defined species
+ */
+alias(chargeRatio);
+
+/*! alias for particle density ratio
+ *
+ * density ratio between default density @see `gasConfig.param` SI::GAS_DENSITY_SI
+ * and a user defined species
+ *
+ * densityRatio is an *optional* flag of a species
+ */
+alias(densityRatio);
 
 } //namespace picongpu

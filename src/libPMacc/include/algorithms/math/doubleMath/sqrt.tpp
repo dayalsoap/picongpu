@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz, 
+ *                     Richard Pausch
  *
  * This file is part of libPMacc.
  *
@@ -24,6 +25,7 @@
 #pragma once
 
 #include "types.h"
+#include "math.h"
 
 namespace PMacc
 {
@@ -50,7 +52,7 @@ struct RSqrt<double>
 
     HDINLINE double operator( )(const double& value )
     {
-#if defined(_MSC_VER) && !defined(__CUDA_ARCH__)
+#if !defined(__CUDACC__)
         return 1.0/::sqrt(value);
 #else
         return ::rsqrt(value);

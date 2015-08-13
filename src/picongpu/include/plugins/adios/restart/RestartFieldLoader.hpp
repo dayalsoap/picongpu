@@ -1,5 +1,6 @@
 /**
  * Copyright 2014-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -108,6 +109,7 @@ public:
 
             int elementCount = params->window.localDimensions.size.productOfComponents();
 
+            #pragma omp parallel for
             for (int linearId = 0; linearId < elementCount; ++linearId)
             {
                 /* calculate index inside the moving window domain which is located on the local grid*/
@@ -135,7 +137,7 @@ public:
 };
 
 /**
- * Hepler class for ADIOSWriter (forEach operator) to load a field from ADIOS
+ * Helper class for ADIOSWriter (forEach operator) to load a field from ADIOS
  *
  * @tparam FieldType field class to load
  */

@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -26,7 +27,6 @@
 #include "types.h"
 #include "simulation_defines.hpp"
 #include "simulation_types.hpp"
-#include "basicOperations.hpp"
 
 #include "simulation_classTypes.hpp"
 #include "mappings/kernel/AreaMapping.hpp"
@@ -65,7 +65,7 @@ struct SglParticle
         for(uint32_t i=0;i<simDim;++i)
             doubleGlobalCellOffset[i]=float_64(globalCellOffset[i]);
 
-        return floatD_64( doubleGlobalCellOffset+ precisionCast<float_64>(position));
+        return floatD_64( doubleGlobalCellOffset + precisionCast<float_64>(position));
     }
 
     template<typename T>
@@ -207,7 +207,7 @@ public:
         /*FORMAT OUTPUT*/
         if (positionParticle.mass != float_X(0.0))
             std::cout << "[ANALYSIS] [" << rank << "] [COUNTER] [" << analyzerPrefix << "] [" << currentStep << "] "
-            << std::setprecision(16) << double(currentStep) * SI::DELTA_T_SI << " "
+            << std::setprecision(16) << float_64(currentStep) * SI::DELTA_T_SI << " "
             << positionParticle << "\n"; // no flush
     }
 

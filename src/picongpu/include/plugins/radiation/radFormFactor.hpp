@@ -32,26 +32,26 @@ namespace picongpu
       HDINLINE radFormFactor(void)
       { }
 
-      HDINLINE float_X operator()(const float_X N, const float_X omega, const vector_32 observer_unit_vec) const
+      HDINLINE float_X operator()(const float_X N, const float_X omega, const vector_X observer_unit_vec) const
       {
 
-	/* Form Factor for CIC charge distribution of N discrete electrons:
-	 * | \mathcal{F} |^2 = N + (N*N - N) * sinc^2(n_x * L_x * \omega) * sinc^2(n_y * L_y * \omega) * sinc^2(n_z * L_z * \omega)
-	 *
-	 * with observation direction (unit vector) \vec{n} = (n_x, n_y, n_z)
-	 * and with: N     = weighting
-	 *           omega = frequency
-	 *           L_d   = the size of the CIC-particle / cell in dimension d
-	 *
-	 * the Form Factor: sqrt( | \mathcal{F} |^2 ) will be returned
-	 */
+    /* Form Factor for CIC charge distribution of N discrete electrons:
+     * | \mathcal{F} |^2 = N + (N*N - N) * sinc^2(n_x * L_x * \omega) * sinc^2(n_y * L_y * \omega) * sinc^2(n_z * L_z * \omega)
+     *
+     * with observation direction (unit vector) \vec{n} = (n_x, n_y, n_z)
+     * and with: N     = weighting
+     *           omega = frequency
+     *           L_d   = the size of the CIC-particle / cell in dimension d
+     *
+     * the Form Factor: sqrt( | \mathcal{F} |^2 ) will be returned
+     */
 
-	return sqrt(N + (N*N - N) * util::square(
-						 math::sinc( observer_unit_vec.x() * CELL_WIDTH/(SPEED_OF_LIGHT*2)  * omega) *
-						 math::sinc( observer_unit_vec.y() * CELL_HEIGHT/(SPEED_OF_LIGHT*2) * omega) *
-						 math::sinc( observer_unit_vec.z() * CELL_DEPTH/(SPEED_OF_LIGHT*2)  * omega)
-						  )
-		    );
+    return sqrt(N + (N*N - N) * util::square(
+                         math::sinc( observer_unit_vec.x() * CELL_WIDTH/(SPEED_OF_LIGHT*2)  * omega) *
+                         math::sinc( observer_unit_vec.y() * CELL_HEIGHT/(SPEED_OF_LIGHT*2) * omega) *
+                         math::sinc( observer_unit_vec.z() * CELL_DEPTH/(SPEED_OF_LIGHT*2)  * omega)
+                          )
+            );
 
       }
     private:
@@ -67,13 +67,13 @@ namespace picongpu
       HDINLINE radFormFactor(void)
       { }
 
-      HDINLINE float_X operator()(const float_X N, const float_X omega, const vector_32 observer_unit_vec) const
+      HDINLINE float_X operator()(const float_X N, const float_X omega, const vector_X observer_unit_vec) const
       {
 
-	/* Form Factor for 1D CIC charge distribution of N discrete electrons:
-	 */
+    /* Form Factor for 1D CIC charge distribution of N discrete electrons:
+     */
 
-	return sqrt(N + (N*N - N) * util::square(math::sinc( CELL_HEIGHT/(SPEED_OF_LIGHT*2) * omega) ) );
+    return sqrt(N + (N*N - N) * util::square(math::sinc( CELL_HEIGHT/(SPEED_OF_LIGHT*2) * omega) ) );
 
       }
     private:
@@ -91,13 +91,13 @@ namespace picongpu
       HDINLINE radFormFactor(void)
       { }
 
-      HDINLINE float_X operator()(const float_X N, const float_X omega, const vector_32 observer_unit_vec) const
+      HDINLINE float_X operator()(const float_X N, const float_X omega, const vector_X observer_unit_vec) const
       {
 
-	/* Form Factor for 1D CIC charge distribution of N discrete electrons:
-	 */
+    /* Form Factor for 1D CIC charge distribution of N discrete electrons:
+     */
 
-	return sqrt(N);
+    return sqrt(N);
 
       }
     private:

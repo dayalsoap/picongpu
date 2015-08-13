@@ -84,12 +84,16 @@ public:
         return *(fixedPointer);
     }
 
+    HDINLINE ValueType const * getPointer() const
+    {
+        return fixedPointer;
+    }
     HDINLINE ValueType* getPointer()
     {
         return fixedPointer;
     }
 
-    /*this call synchronize a block and must called from any thread and not inside a if clauses*/
+    /* This call synchronizes a block and must be called from all threads and not inside a if clauses*/
     static DINLINE This init()
     {
         __shared__ ValueType mem_sh[Size::x::value];
@@ -140,12 +144,16 @@ public:
         return *((ValueType*) fixedPointer);
     }
 
+    HDINLINE ValueType const * getPointer() const
+    {
+        return fixedPointer;
+    }
     HDINLINE ValueType* getPointer()
     {
         return fixedPointer;
     }
 
-    /*this call synchronize a block and must called from any thread and not inside a if clauses*/
+    /* This call synchronizes a block and must be called from all threads and not inside a if clauses*/
     static DINLINE This init()
     {
         __shared__ ValueType mem_sh[Size::y::value][Size::x::value];
@@ -203,6 +211,10 @@ public:
         return *(fixedPointer);
     }
 
+    HDINLINE ValueType const * getPointer() const
+    {
+        return fixedPointer;
+    }
     HDINLINE ValueType* getPointer()
     {
         return fixedPointer;

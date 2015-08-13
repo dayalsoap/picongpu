@@ -21,7 +21,7 @@
 
 
 #ifndef PNGCREATOR_HPP
-#define	PNGCREATOR_HPP
+#define    PNGCREATOR_HPP
 
 #include "types.h"
 #include "simulation_defines.hpp"
@@ -73,7 +73,7 @@ namespace picongpu
 
     private:
 
-        void resizeAndScaleImage(pngwriter* png, double scaleFactor)
+        void resizeAndScaleImage(pngwriter* png, float_64 scaleFactor)
         {
             if (scaleFactor != 1.)
                 png->scale_k(scaleFactor);
@@ -150,5 +150,5 @@ namespace picongpu
 
 }//namespace
 
-#endif	/* PNGCREATOR_HPP */
+#endif    /* PNGCREATOR_HPP */
 

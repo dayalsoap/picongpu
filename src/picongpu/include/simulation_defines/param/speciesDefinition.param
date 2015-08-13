@@ -74,38 +74,52 @@ AttributRadiationFlag
 
 /*--------------------------- electrons --------------------------------------*/
 
+/* ratio relative to BASE_CHARGE and BASE_MASS */
+value_identifier(float_X, MassRatioElectrons, 1.0);
+value_identifier(float_X, ChargeRatioElectrons, 1.0);
+
 typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>
+    current<UsedParticleCurrentSolver>,
+    massRatio<MassRatioElectrons>,
+    chargeRatio<ChargeRatioElectrons>
 > ParticleFlagsElectrons;
 
 /*define specie electrons*/
-typedef Particles<ParticleDescription<
-    bmpl::string<'e'>,
-    SuperCellSize,
-    DefaultAttributesSeq,
-    ParticleFlagsElectrons,
-    MakeSeq<CommunicationId<PAR_ELECTRONS> >::type  >
+typedef Particles<
+    ParticleDescription<
+        bmpl::string<'e'>,
+        SuperCellSize,
+        DefaultAttributesSeq,
+        ParticleFlagsElectrons
+    >
 > PIC_Electrons;
 
 /*--------------------------- ions -------------------------------------------*/
 
+/* ratio relative to BASE_CHARGE and BASE_MASS */
+value_identifier(float_X, MassRatioIons, 1836.152672);
+value_identifier(float_X, ChargeRatioIons, -1.0);
+
 typedef bmpl::vector<
     particlePusher<UsedParticlePusher>,
     shape<UsedParticleShape>,
     interpolation<UsedField2Particle>,
-    current<UsedParticleCurrentSolver>
+    current<UsedParticleCurrentSolver>,
+    massRatio<MassRatioIons>,
+    chargeRatio<ChargeRatioIons>
 > ParticleFlagsIons;
 
 /*define specie ions*/
-typedef Particles<ParticleDescription<
-    bmpl::string<'i'>,
-    SuperCellSize,
-    DefaultAttributesSeq,
-    ParticleFlagsIons,
-    MakeSeq<CommunicationId<PAR_IONS> >::type >
+typedef Particles<
+    ParticleDescription<
+        bmpl::string<'i'>,
+        SuperCellSize,
+        DefaultAttributesSeq,
+        ParticleFlagsIons
+    >
 > PIC_Ions;
 
 /*########################### end species ####################################*/

@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Rene Widera, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -77,7 +77,7 @@ namespace picongpu
             desc.add_options()
                     ((analyzerPrefix + ".period").c_str(), po::value<std::vector<uint32_t> > (&notifyFrequencys)->multitoken(), "enable data output [for each n-th step]")
                     ((analyzerPrefix + ".axis").c_str(), po::value<std::vector<std::string > > (&axis)->multitoken(), "axis which are shown [valid values x,y,z] example: yz")
-                    ((analyzerPrefix + ".slicePoint").c_str(), po::value<std::vector<float> > (&slicePoints)->multitoken(), "value range: 0 <= x <= 1 , point of the slice")
+                    ((analyzerPrefix + ".slicePoint").c_str(), po::value<std::vector<float_32> > (&slicePoints)->multitoken(), "value range: 0 <= x <= 1 , point of the slice")
                     ((analyzerPrefix + ".folder").c_str(), po::value<std::vector<std::string> > (&folders)->multitoken(), "folder for output files");
         }
 
@@ -184,7 +184,7 @@ namespace picongpu
         typename Vec::value_type getValue(Vec vec, size_t id)
         {
             if (vec.size() == 0)
-                throw std::runtime_error("[Livew View] getValue is used with a parameter set with no parameters (count is 0)");
+                throw std::runtime_error("[Png Plugin] getValue is used with a parameter set with no parameters (count is 0)");
             if (id >= vec.size())
             {
                 return vec[vec.size() - 1];
@@ -206,7 +206,7 @@ namespace picongpu
         std::string analyzerPrefix;
 
         std::vector<uint32_t> notifyFrequencys;
-        std::vector<float> slicePoints;
+        std::vector<float_32> slicePoints;
         std::vector<std::string> folders;
         std::vector<std::string> axis;
         VisPointerList visIO;

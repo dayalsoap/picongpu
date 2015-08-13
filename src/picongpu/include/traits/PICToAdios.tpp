@@ -60,9 +60,9 @@ namespace traits
         type(adios_unsigned_long) {}
     };
 
-    /** Trait for float */
+    /** Trait for float_32 */
     template<>
-    struct PICToAdios<float>
+    struct PICToAdios<float_32>
     {
         ADIOS_DATATYPES type;
         
@@ -70,9 +70,9 @@ namespace traits
         type(adios_real) {}
     };
 
-    /** Trait for double */
+    /** Trait for float_64 */
     template<>
-    struct PICToAdios<double>
+    struct PICToAdios<float_64>
     {
         ADIOS_DATATYPES type;
         

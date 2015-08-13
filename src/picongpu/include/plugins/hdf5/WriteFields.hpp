@@ -1,5 +1,6 @@
 /**
- * Copyright 2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2014-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -35,16 +36,16 @@ using namespace PMacc;
 using namespace splash;
 
 /**
- * Helper class to create a unit vector of type double
+ * Helper class to create a unit vector of type float_64
  */
 class CreateUnit
 {
 public:
     template<typename UnitType>
-    static std::vector<double> createUnit(UnitType unit, uint32_t numComponents)
+    static std::vector<float_64> createUnit(UnitType unit, uint32_t numComponents)
     {
-        std::vector<double> tmp(numComponents);
-        for (uint i = 0; i < numComponents; ++i)
+        std::vector<float_64> tmp(numComponents);
+        for (uint32_t i = 0; i < numComponents; ++i)
             tmp[i] = unit[i];
         return tmp;
     }
@@ -62,7 +63,7 @@ class WriteFields
 private:
     typedef typename T::ValueType ValueType;
 
-    static std::vector<double> getUnit()
+    static std::vector<float_64> getUnit()
     {
         typedef typename T::UnitValueType UnitType;
         UnitType unit = T::getUnit();
@@ -133,7 +134,7 @@ private:
     }
 
     /** Get the unit for the result from the solver*/
-    static std::vector<double> getUnit()
+    static std::vector<float_64> getUnit()
     {
         typedef typename FieldTmp::UnitValueType UnitType;
         UnitType unit = FieldTmp::getUnit<Solver>();

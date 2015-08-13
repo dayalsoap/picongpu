@@ -1,5 +1,6 @@
 /**
- * Copyright 2014-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2014-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz, Alexander Grund
  *
  * This file is part of PIConGPU.
  *
@@ -49,6 +50,8 @@
 #include "pluginSystem/PluginConnector.hpp"
 #include "simulationControl/MovingWindow.hpp"
 #include "math/Vector.hpp"
+#include "particles/memory/buffers/MallocMCBuffer.hpp"
+#include "traits/Limits.hpp"
 
 #include "plugins/ILightweightPlugin.hpp"
 #include <boost/mpl/vector.hpp>
@@ -139,10 +142,10 @@ class ADIOSWriter : public ILightweightPlugin
 private:
 
     template<typename UnitType>
-    static std::vector<double> createUnit(UnitType unit, uint32_t numComponents)
+    static std::vector<float_64> createUnit(UnitType unit, uint32_t numComponents)
     {
-        std::vector<double> tmp(numComponents);
-        for (uint i = 0; i < numComponents; ++i)
+        std::vector<float_64> tmp(numComponents);
+        for (uint32_t i = 0; i < numComponents; ++i)
             tmp[i] = unit[i];
         return tmp;
     }
@@ -261,7 +264,7 @@ private:
 
     static void defineFieldVar(ThreadParams* params,
         uint32_t nComponents, ADIOS_DATATYPES adiosType, const std::string name,
-        std::vector<double> unit)
+        std::vector<float_64> unit)
     {
         const std::string name_lookup_tpl[] = {"x", "y", "z", "w"};
 
@@ -308,7 +311,7 @@ private:
         typedef typename T::UnitValueType UnitType;
         typedef typename GetComponentsType<ValueType>::type ComponentType;
 
-        static std::vector<double> getUnit()
+        static std::vector<float_64> getUnit()
         {
             UnitType unit = T::getUnit();
             return createUnit(unit, T::numComponents);
@@ -366,7 +369,7 @@ private:
         }
 
         /** Get the unit for the result from the solver*/
-        static std::vector<double> getUnit()
+        static std::vector<float_64> getUnit()
         {
             UnitType unit = FieldTmp::getUnit<Solver>();
             const uint32_t components = GetNComponents<ValueType>::value;
@@ -400,7 +403,8 @@ public:
     restartFilename(""), /* set to checkpointFilename by default */
     /* select MPI method, #OSTs and #aggregators */
     mpiTransportParams(""),
-    notifyPeriod(0)
+    notifyPeriod(0),
+    lastSpeciesSyncStep(PMacc::traits::limits::Max<uint32_t>::value)
     {
         Environment<>::get().PluginConnector().registerPlugin(this);
     }
@@ -499,7 +503,7 @@ public:
 
         /* <0 sec: wait forever
          * >=0 sec: return immediately if stream is not available */
-        float timeout = 0.0f;
+        float_32 timeout = 0.0f;
         mThreadParams.fp = adios_read_open(strFname.str().c_str(),
                         ADIOS_READ_METHOD_BP, mThreadParams.adiosComm,
                         ADIOS_LOCKMODE_CURRENT, timeout);
@@ -612,7 +616,7 @@ private:
         mThreadParams.adiosFileHandle = ADIOS_INVALID_HANDLE;
 
         mThreadParams.fieldBfr = NULL;
-        mThreadParams.fieldBfr = new float[mThreadParams.window.localDimensions.size.productOfComponents()];
+        mThreadParams.fieldBfr = new float_32[mThreadParams.window.localDimensions.size.productOfComponents()];
 
         std::stringstream adiosPathBase;
         adiosPathBase << ADIOS_PATH_ROOT << mThreadParams.currentStep << "/";
@@ -661,6 +665,25 @@ private:
                     mThreadParams.window.globalDimensions.offset[i] -
                     localDomain.offset[i];
             }
+        }
+
+
+        /*copy species only one time per timestep to the host*/
+        if( lastSpeciesSyncStep != currentStep )
+        {
+            DataConnector &dc = Environment<>::get().DataConnector();
+            
+            /* synchronizes the MallocMCBuffer to the host side */
+            dc.getData<MallocMCBuffer> (MallocMCBuffer::getName());
+
+            /* here we are copying all species to the host side since we
+             * can not say at this point if this time step will need all of them
+             * for sure (checkpoint) or just some user-defined species (dump)
+             */
+            ForEach<FileCheckpointParticles, CopySpeciesToHost<bmpl::_1> > copySpeciesToHost;
+            copySpeciesToHost();
+            lastSpeciesSyncStep = currentStep;
+            dc.releaseData(MallocMCBuffer::getName());
         }
 
         beginAdios(fname);
@@ -763,7 +786,7 @@ private:
                         size_t index_src = base_index_src + (x + field_guard[0]) * nComponents + d;
                         size_t index_dst = base_index_dst + x;
 
-                        params->fieldBfr[index_dst] = ((float*)ptr)[index_src];
+                        params->fieldBfr[index_dst] = ((float_32*)ptr)[index_src];
                     }
                 }
             }
@@ -951,7 +974,7 @@ private:
         /* `1 + mem` minimum 1 MiB that we can write attributes on empty GPUs */
         size_t writeBuffer_in_MiB=1+threadParams->adiosGroupSize / 1024 / 1024;
         /* value `1.1` is the secure factor if we miss to count some small buffers*/
-        size_t buffer_mem=static_cast<size_t>(1.1 * static_cast<double>(writeBuffer_in_MiB));
+        size_t buffer_mem=static_cast<size_t>(1.1 * static_cast<float_64>(writeBuffer_in_MiB));
         ADIOS_CMD(adios_allocate_buffer(ADIOS_BUFFER_ALLOC_NOW,buffer_mem));
         threadParams->adiosBufferInitialized = true;
 
@@ -1026,6 +1049,7 @@ private:
     std::string mpiTransportParams;
 
     uint32_t restartChunkSize;
+    uint32_t lastSpeciesSyncStep;
 
     DataSpace<simDim> mpi_pos;
     DataSpace<simDim> mpi_size;

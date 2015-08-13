@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Felix Schmitt,
+ *                     Alexander Grund
  *
  * This file is part of PIConGPU.
  *
@@ -49,6 +50,7 @@
 
 #include "fields/numericalCellTypes/YeeCell.hpp"
 
+#include "traits/GetUniqueTypeId.hpp"
 #include "traits/Resolve.hpp"
 
 namespace picongpu
@@ -62,7 +64,7 @@ Particles<T_ParticleDescription>::Particles( GridLayout<simDim> gridLayout,
                                              MappingDesc cellDescription,
                                              SimulationDataId datasetID ) :
 ParticlesBase<T_ParticleDescription, MappingDesc>( cellDescription ),
-fieldB( NULL ), fieldE( NULL ), fieldJurrent( NULL ), fieldTmp( NULL ), gridLayout( gridLayout ),
+fieldB( NULL ), fieldE( NULL ), fieldJcurrent( NULL ), fieldTmp( NULL ), gridLayout( gridLayout ),
 datasetID( datasetID )
 {
     size_t sizeOfExchanges = 2 * 2 * ( BYTES_EXCHANGE_X + BYTES_EXCHANGE_Y + BYTES_EXCHANGE_Z ) + BYTES_EXCHANGE_X * 2 * 8;
@@ -70,28 +72,43 @@ datasetID( datasetID )
 
     this->particlesBuffer = new BufferType( gridLayout.getDataSpace( ), gridLayout.getGuard( ) );
 
-    log<picLog::MEMORY > ( "size for all exchange = %1% MiB" ) % ( (double) sizeOfExchanges / 1024. / 1024. );
+    log<picLog::MEMORY > ( "size for all exchange = %1% MiB" ) % ( (float_64) sizeOfExchanges / 1024. / 1024. );
 
-    this->particlesBuffer->addExchange( Mask( LEFT ) + Mask( RIGHT ), BYTES_EXCHANGE_X, FrameType::CommunicationTag );
-    this->particlesBuffer->addExchange( Mask( TOP ) + Mask( BOTTOM ), BYTES_EXCHANGE_Y, FrameType::CommunicationTag );
+    const uint32_t commTag = PMacc::traits::GetUniqueTypeId<FrameType, uint32_t>::uid() + SPECIES_FIRSTTAG;
+    log<picLog::MEMORY > ( "communication tag for species %1%: %2%" ) % FrameType::getName( ) % commTag;
+
+    this->particlesBuffer->addExchange( Mask( LEFT ) + Mask( RIGHT ),
+                                        BYTES_EXCHANGE_X,
+                                        commTag);
+    this->particlesBuffer->addExchange( Mask( TOP ) + Mask( BOTTOM ),
+                                        BYTES_EXCHANGE_Y,
+                                        commTag);
     //edges of the simulation area
     this->particlesBuffer->addExchange( Mask( RIGHT + TOP ) + Mask( LEFT + TOP ) +
-                                        Mask( LEFT + BOTTOM ) + Mask( RIGHT + BOTTOM ), BYTES_EDGES, FrameType::CommunicationTag );
+                                        Mask( LEFT + BOTTOM ) + Mask( RIGHT + BOTTOM ), BYTES_EDGES,
+                                        commTag);
 
 #if(SIMDIM==DIM3)
-    this->particlesBuffer->addExchange( Mask( FRONT ) + Mask( BACK ), BYTES_EXCHANGE_Z, FrameType::CommunicationTag );
+    this->particlesBuffer->addExchange( Mask( FRONT ) + Mask( BACK ), BYTES_EXCHANGE_Z,
+                                        commTag);
     //edges of the simulation area
     this->particlesBuffer->addExchange( Mask( FRONT + TOP ) + Mask( BACK + TOP ) +
                                         Mask( FRONT + BOTTOM ) + Mask( BACK + BOTTOM ),
-                                        BYTES_EDGES, FrameType::CommunicationTag );
+                                        BYTES_EDGES,
+                                        commTag);
     this->particlesBuffer->addExchange( Mask( FRONT + RIGHT ) + Mask( BACK + RIGHT ) +
                                         Mask( FRONT + LEFT ) + Mask( BACK + LEFT ),
-                                        BYTES_EDGES, FrameType::CommunicationTag );
+                                        BYTES_EDGES,
+                                        commTag);
     //corner of the simulation area
-    this->particlesBuffer->addExchange( Mask( TOP + FRONT + RIGHT ) + Mask( TOP + BACK + RIGHT ) + Mask( BOTTOM + FRONT + RIGHT ) + Mask( BOTTOM + BACK + RIGHT ),
-                                        BYTES_CORNER, FrameType::CommunicationTag );
-    this->particlesBuffer->addExchange( Mask( TOP + FRONT + LEFT ) + Mask( TOP + BACK + LEFT ) + Mask( BOTTOM + FRONT + LEFT ) + Mask( BOTTOM + BACK + LEFT ),
-                                        BYTES_CORNER, FrameType::CommunicationTag );
+    this->particlesBuffer->addExchange( Mask( TOP + FRONT + RIGHT ) + Mask( TOP + BACK + RIGHT ) +
+                                        Mask( BOTTOM + FRONT + RIGHT ) + Mask( BOTTOM + BACK + RIGHT ),
+                                        BYTES_CORNER,
+                                        commTag);
+    this->particlesBuffer->addExchange( Mask( TOP + FRONT + LEFT ) + Mask( TOP + BACK + LEFT ) +
+                                        Mask( BOTTOM + FRONT + LEFT ) + Mask( BOTTOM + BACK + LEFT ),
+                                        BYTES_CORNER,
+                                        commTag);
 #endif
 }
 
@@ -130,7 +147,7 @@ void Particles<T_ParticleDescription>::init( FieldE &fieldE, FieldB &fieldB, Fie
 {
     this->fieldE = &fieldE;
     this->fieldB = &fieldB;
-    this->fieldJurrent = &fieldJ;
+    this->fieldJcurrent = &fieldJ;
     this->fieldTmp = &fieldTmp;
 
     Environment<>::get( ).DataConnector( ).registerData( *this );
@@ -191,7 +208,8 @@ void Particles<T_ParticleDescription>::initGas( T_GasFunctor& gasFunctor,
     totalGpuCellOffset.y( ) += numSlides * localCells.y( );
 
     dim3 block( MappingDesc::SuperCellSize::toRT( ).toDim3( ) );
-    __picKernelArea( kernelFillGridWithParticles, this->cellDescription, CORE + BORDER )
+    __picKernelArea( (kernelFillGridWithParticles<Particles<T_ParticleDescription> >),
+                      this->cellDescription, CORE + BORDER)
         (block)
         ( gasFunctor, positionFunctor, totalGpuCellOffset, this->particlesBuffer->getDeviceParticleBox( ) );
 
@@ -200,14 +218,15 @@ void Particles<T_ParticleDescription>::initGas( T_GasFunctor& gasFunctor,
 }
 
 template< typename T_ParticleDescription>
-template< typename t_ParticleDescription>
-void Particles<T_ParticleDescription>::deviceCloneFrom( Particles< t_ParticleDescription> &src )
+template< typename T_SrcParticleDescription,
+          typename T_ManipulateFunctor>
+void Particles<T_ParticleDescription>::deviceCloneFrom( Particles< T_SrcParticleDescription> &src, T_ManipulateFunctor& functor )
 {
     dim3 block( PMacc::math::CT::volume<SuperCellSize>::type::value );
 
     log<picLog::SIMULATION_STATE > ( "clone species %1%" ) % FrameType::getName( );
     __picKernelArea( kernelCloneParticles, this->cellDescription, CORE + BORDER )
-        (block) ( this->getDeviceParticlesBox( ), src.getDeviceParticlesBox( ) );
+        (block) ( this->getDeviceParticlesBox( ), src.getDeviceParticlesBox( ), functor );
     this->fillAllGaps( );
 }
 

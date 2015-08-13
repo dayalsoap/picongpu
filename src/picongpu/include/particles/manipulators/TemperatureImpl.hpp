@@ -26,6 +26,7 @@
 #include "nvidia/rng/methods/Xor.hpp"
 #include "nvidia/rng/distributions/Normal_float.hpp"
 #include "mpi/SeedPerRank.hpp"
+#include "traits/GetUniqueTypeId.hpp"
 
 namespace picongpu
 {
@@ -42,7 +43,7 @@ template<typename T_ParamClass, typename T_ValueFunctor, typename T_SpeciesType>
 struct TemperatureImpl : private T_ValueFunctor
 {
     typedef T_ParamClass ParamClass;
-     typedef T_SpeciesType SpeciesType;
+    typedef T_SpeciesType SpeciesType;
     typedef typename MakeIdentifier<SpeciesType>::type SpeciesName;
 
     typedef T_ValueFunctor ValueFunctor;
@@ -53,17 +54,19 @@ struct TemperatureImpl : private T_ValueFunctor
 
         GlobalSeed globalSeed;
         mpi::SeedPerRank<simDim> seedPerRank;
-        seed = seedPerRank(globalSeed(), FrameType::CommunicationTag);
+        seed = seedPerRank(globalSeed(), PMacc::traits::GetUniqueTypeId<FrameType, uint32_t>::uid());
         seed ^= TEMPERATURE_SEED;
 
         const SubGrid<simDim>& subGrid = Environment<simDim>::get().SubGrid();
         localCells = subGrid.getLocalDomain().size;
     }
 
-    template<typename T_Particle>
-    DINLINE void operator()(const DataSpace<simDim>& localCellIdx, T_Particle& particle, const bool isParticle)
+    template<typename T_Particle1, typename T_Particle2>
+    DINLINE void operator()(const DataSpace<simDim>& localCellIdx,
+                            T_Particle1& particle, T_Particle2&,
+                            const bool isParticle, const bool)
     {
-        typedef typename T_Particle::FrameType FrameType;
+        typedef typename T_Particle1::FrameType FrameType;
 
         if (!isInitialized)
         {

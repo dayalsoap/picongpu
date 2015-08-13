@@ -155,7 +155,7 @@ __global__ void kernelBinEnergyParticles(ParticlesBox<FRAME, simDim> pb,
 
                 /* +1 move value from 1 to numBins+1 */
                 int binNumber = math::floor((_local_energy - minEnergy) /
-                                      (maxEnergy - minEnergy) * (float) numBins) + 1;
+                                      (maxEnergy - minEnergy) * (float_32) numBins) + 1;
 
                 const int maxBin = numBins + 1;
 
@@ -202,14 +202,14 @@ private:
 
     ParticlesType *particles;
 
-    GridBuffer<double, DIM1> *gBins;
+    GridBuffer<float_64, DIM1> *gBins;
     MappingDesc *cellDescription;
 
     std::string analyzerName;
     std::string analyzerPrefix;
     std::string filename;
 
-    double * binReduced;
+    float_64 * binReduced;
 
     uint32_t notifyPeriod;
     int numBins;
@@ -301,9 +301,9 @@ private:
         {
             /* create header of the file */
             outFile << "#step <" << minEnergy_keV << " ";
-            float_X binEnergy = (maxEnergy_keV - minEnergy_keV) / (float) numBins;
+            float_X binEnergy = (maxEnergy_keV - minEnergy_keV) / (float_32) numBins;
             for (int i = 1; i < realNumBins - 1; ++i)
-                outFile << minEnergy_keV + ((float) i * binEnergy) << " ";
+                outFile << minEnergy_keV + ((float_32) i * binEnergy) << " ";
 
             outFile << ">" << maxEnergy_keV << " count" << std::endl;
         }
@@ -330,9 +330,9 @@ private:
 
             realNumBins = numBins + 2;
 
-            /* create an array of double on gpu und host */
-            gBins = new GridBuffer<double, DIM1 > (DataSpace<DIM1 > (realNumBins));
-            binReduced = new double[realNumBins];
+            /* create an array of float_64 on gpu und host */
+            gBins = new GridBuffer<float_64, DIM1 > (DataSpace<DIM1 > (realNumBins));
+            binReduced = new float_64[realNumBins];
             for (int i = 0; i < realNumBins; ++i)
             {
                 binReduced[i] = 0.0;
@@ -394,8 +394,8 @@ private:
 
         /** Assumption: distanceToDetector >> simulated Area in y-Direction
          *          AND     simulated area in X,Z << slit  */
-        double maximumSlopeToDetectorX = 0.0; /*0.0 is disabled detector*/
-        double maximumSlopeToDetectorZ = 0.0; /*0.0 is disabled detector*/
+        float_64 maximumSlopeToDetectorX = 0.0; /*0.0 is disabled detector*/
+        float_64 maximumSlopeToDetectorZ = 0.0; /*0.0 is disabled detector*/
         if (enableDetector)
         {
             maximumSlopeToDetectorX = (slitDetectorX / 2.0) / (distanceToDetector);
@@ -428,16 +428,16 @@ private:
             outFile.precision(dbl::digits10);
 
             /* write data to file */
-            double count_particles = 0.0;
+            float_64 count_particles = 0.0;
             outFile << currentStep << " "
                     << std::scientific; /*  for floating points, ignored for ints */
 
             for (int i = 0; i < realNumBins; ++i)
             {
-                count_particles += double( binReduced[i]);
-                outFile << std::scientific << (binReduced[i]) * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE) << " ";
+                count_particles += float_64( binReduced[i]);
+                outFile << std::scientific << (binReduced[i]) * float_64(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE) << " ";
             }
-            outFile << std::scientific << count_particles * double(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE)
+            outFile << std::scientific << count_particles * float_64(particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE)
                 << std::endl;
             /* endl: Flush any step to the file.
              * Thus, we will have data if the program should crash. */

@@ -36,16 +36,16 @@ namespace traits
     {
         typedef splash::ColTypeBool type;
     };
-    /** Trait for float */
+    /** Trait for float_32 */
     template<>
-    struct PICToSplash<float>
+    struct PICToSplash<float_32>
     {
         typedef splash::ColTypeFloat type;
     };
 
-    /** Trait for double */
+    /** Trait for float_64 */
     template<>
-    struct PICToSplash<double>
+    struct PICToSplash<float_64>
     {
         typedef splash::ColTypeDouble type;
     };

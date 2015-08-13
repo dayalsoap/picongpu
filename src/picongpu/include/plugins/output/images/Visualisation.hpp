@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch, Felix Schmitt
  *
  * This file is part of PIConGPU.
  *
@@ -70,6 +70,7 @@
 #include "algorithms/GlobalReduce.hpp"
 #include "memory/boxes/DataBoxDim1Access.hpp"
 #include "nvidia/functors/Max.hpp"
+#include "nvidia/atomic.hpp"
 
 namespace picongpu
 {
@@ -118,7 +119,7 @@ struct typicalFields < 1 >
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
         const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-            * abs(Q_EL) / DELTA_T;
+            * abs(BASE_CHARGE) / DELTA_T;
         const float_X tyEField = laserProfile::AMPLITUDE + FLT_MIN;
         const float_X tyBField = tyEField * MUE0_EPS0;
 
@@ -142,7 +143,7 @@ struct typicalFields < 3 >
         return float3_X(float_X(1.0), float_X(1.0), float_X(1.0));
 #else
         const float_X lambda_pl = 2.0f * M_PI * SPEED_OF_LIGHT *
-            sqrt(M_EL * EPS0 / GAS_DENSITY / Q_EL / Q_EL);
+            sqrt(BASE_MASS * EPS0 / GAS_DENSITY / BASE_CHARGE / BASE_CHARGE);
         const float_X tyEField = lambda_pl * GAS_DENSITY / 3.0f / EPS0;
         const float_X tyBField = tyEField * MUE0_EPS0;
         const float_X tyCurrent = tyBField / MUE0;
@@ -168,7 +169,7 @@ struct typicalFields < 5 >
         const float_X tyEField = laserProfile::W0 * GAS_DENSITY / 3.0f / EPS0;
         const float_X tyBField = tyEField * MUE0_EPS0;
         const float_X tyCurrent = particles::TYPICAL_PARTICLES_PER_CELL * particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE
-            * abs(Q_EL) / DELTA_T;
+            * abs(BASE_CHARGE) / DELTA_T;
 
         return float3_X(tyBField, tyEField, tyCurrent);
 #endif
@@ -300,7 +301,7 @@ kernelPaintParticles3D(ParBox pb,
     if (globalCell == slice)
 #endif
     {
-        atomicExch((int*) &isValid, 1); /*WAW Error in cuda-memcheck racecheck*/
+        nvidia::atomicAllExch((int*) &isValid,1); /*WAW Error in cuda-memcheck racecheck*/
         isImageThread = true;
     }
     __syncthreads();
@@ -484,7 +485,7 @@ public:
         Window window(MovingWindow::getInstance().getWindow(currentStep));
 
         /*sliceOffset is only used in 3D*/
-        sliceOffset = (int) ((float) (window.globalDimensions.size[sliceDim]) * slicePoint) + window.globalDimensions.offset[sliceDim];
+        sliceOffset = (int) ((float_32) (window.globalDimensions.size[sliceDim]) * slicePoint) + window.globalDimensions.offset[sliceDim];
 
         if (!doDrawing())
         {
@@ -557,11 +558,11 @@ public:
         //We don't know the superCellSize at compile time
         // (because of the runtime dimension selection in any analyser),
         // thus we must use a one dimension kernel and no mapper
-        __cudaKernel(vis_kernels::divideAnyCell)(ceil((double) elements / 256), 256)(d1access, elements, max);
+        __cudaKernel(vis_kernels::divideAnyCell)(ceil((float_64) elements / 256), 256)(d1access, elements, max);
 #endif
 
         // convert channels to RGB
-        __cudaKernel(vis_kernels::channelsToRGB)(ceil((double) elements / 256), 256)(d1access, elements);
+        __cudaKernel(vis_kernels::channelsToRGB)(ceil((float_64) elements / 256), 256)(d1access, elements);
 
         // add density color channel
         DataSpace<simDim> blockSize(MappingDesc::SuperCellSize::toRT());
@@ -613,7 +614,7 @@ public:
             const DataSpace<simDim> localSize(cellDescription->getGridLayout().getDataSpaceWithoutGuarding());
 
             Window window(MovingWindow::getInstance().getWindow(0));
-            sliceOffset = (int) ((float) (window.globalDimensions.size[sliceDim]) * slicePoint) + window.globalDimensions.offset[sliceDim];
+            sliceOffset = (int) ((float_32) (window.globalDimensions.size[sliceDim]) * slicePoint) + window.globalDimensions.offset[sliceDim];
 
 
             const DataSpace<simDim> gpus = Environment<simDim>::get().GridController().getGpuNodes();

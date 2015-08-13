@@ -106,8 +106,8 @@ public:
         void operator()()
         {
             typedef typename T_Species::FrameType FrameType;
-            const float charge = frame::getCharge<FrameType>();
-            const float mass = frame::getMass<FrameType>();
+            const float_32 charge = frame::getCharge<FrameType>();
+            const float_32 mass = frame::getMass<FrameType>();
             log<picLog::PHYSICS >("species %2%: omega_p * dt <= 0.1 ? %1%") %
                                  (sqrt(GAS_DENSITY *  charge / mass * charge / EPS0) * DELTA_T) %
                                   FrameType::getName();
@@ -133,7 +133,7 @@ public:
                                      (laserProfile::WAVE_LENGTH / CELL_HEIGHT);
             const int localNrOfCells = cellDescription->getGridLayout().getDataSpaceWithoutGuarding().productOfComponents();
             log<picLog::PHYSICS >("macro particles per gpu: %1%") %
-                                 (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL * (1 + 1 * ENABLE_IONS));
+                                 (localNrOfCells * particles::TYPICAL_PARTICLES_PER_CELL * (bmpl::size<VectorAllSpecies>::type::value));
             log<picLog::PHYSICS >("typical macro particle weighting: %1%") % (particles::TYPICAL_NUM_PARTICLES_PER_MACROPARTICLE);
 
 

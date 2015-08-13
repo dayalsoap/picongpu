@@ -33,6 +33,17 @@
 #define PMACC_USING_STATIC_CONST_VECTOR_NAMESPACE(id) using namespace PMACC_JOIN(pmacc_static_const_vector_host,id)
 #endif
 
+#ifdef __CUDACC__
+    #define PMACC_STATIC_CONST_VECTOR_DIM_DEF_CUDA(id,Name,Type,...)               \
+        namespace PMACC_JOIN(pmacc_static_const_vector_device,id)                  \
+        {                                                                          \
+           /* store all values in a const C array on device*/                      \
+            __constant__ const Type PMACC_JOIN(Name, _data)[]={__VA_ARGS__};       \
+        } /*namespace pmacc_static_const_vector_device + id */
+#else
+    #define PMACC_STATIC_CONST_VECTOR_DIM_DEF_CUDA(id,Name,Type,...)
+#endif
+
 /** define a const vector
  *
  * create type definition `Name_t`
@@ -43,14 +54,10 @@
 #define PMACC_STATIC_CONST_VECTOR_DIM_DEF(id,Name,Type,Dim,count,...)          \
 namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
 {                                                                              \
-    namespace PMACC_JOIN(pmacc_static_const_vector_device,id)                  \
+    PMACC_STATIC_CONST_VECTOR_DIM_DEF_CUDA(id,Name,Type,__VA_ARGS__);          \
+    namespace PMACC_JOIN(pmacc_static_const_vector_host,id)                    \
     {                                                                          \
-       /* store all values in a const C array on device*/                      \
-        __constant__ const Type PMACC_JOIN(Name,_data)[]={__VA_ARGS__};        \
-    } /*namespace pmacc_static_const_vector_device + id */                     \
-    namespace PMACC_JOIN( pmacc_static_const_vector_host,id)                   \
-    {                                                                          \
-        /* store all values in a const C array on device*/                     \
+        /* store all values in a const C array on host*/                       \
         const Type PMACC_JOIN(Name,_data)[]={__VA_ARGS__};                     \
     } /* namespace pmacc_static_const_vector_host + id  */                     \
     /* select host or device namespace depending on __CUDA_ARCH__ compiler flag*/ \
@@ -61,11 +68,7 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
         static const bool isConst = true;                                      \
         typedef T_Type type;                                                   \
         static const int dim=T_Dim;                                            \
-        HDINLINE type& operator[](const int idx)                               \
-        {                                                                      \
-            /*access const C array with the name of array*/                    \
-            return PMACC_JOIN(Name,_data)[idx];                                \
-        }                                                                      \
+                                                                               \
         HDINLINE const type& operator[](const int idx) const                   \
         {                                                                      \
             /*access const C array with the name of array*/                    \
@@ -73,7 +76,7 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
         }                                                                      \
     };                                                                         \
     /*define a const vector type, ConstArrayStorage is used as Storage policy*/\
-    typedef PMacc::math::Vector<                                               \
+    typedef const PMacc::math::Vector<                                         \
         Type,                                                                  \
         Dim,                                                                   \
         PMacc::math::StandardAccessor,                                         \
@@ -82,17 +85,25 @@ namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
 } /* namespace pmacc_static_const_storage + id */                              \
 using namespace PMACC_JOIN(pmacc_static_const_storage,id)
 
+#ifdef __CUDACC__
+    #define PMACC_STATIC_CONST_VECTOR_DIM_INSTANCE_CUDA(Name,id)               \
+        namespace PMACC_JOIN(pmacc_static_const_vector_device,id)              \
+        {                                                                      \
+            /* create const instance on device */                              \
+            __constant__ const PMACC_JOIN(Name,_t) Name;                       \
+        } /* namespace pmacc_static_const_vector_device + id */
+#else
+    #define PMACC_STATIC_CONST_VECTOR_DIM_INSTANCE_CUDA(Name,id)
+#endif
+
 /** create a instance of type `Name_t` with the name `Name`
  */
 #define PMACC_STATIC_CONST_VECTOR_DIM_INSTANCE(id,Name,Type,Dim,count,...)     \
 namespace PMACC_JOIN(pmacc_static_const_storage,id)                            \
 {                                                                              \
-    namespace PMACC_JOIN(pmacc_static_const_vector_device,id)                  \
-    {                                                                          \
-        /* create const instance on device */                                  \
-        __constant__ const PMACC_JOIN(Name,_t) Name;                           \
-    } /* namespace pmacc_static_const_vector_device + id */                    \
-    namespace PMACC_JOIN( pmacc_static_const_vector_host,id)                   \
+    /* Conditionally define the instance on CUDA devices */                    \
+    PMACC_STATIC_CONST_VECTOR_DIM_INSTANCE_CUDA(Name,id)                       \
+    namespace PMACC_JOIN(pmacc_static_const_vector_host,id)                    \
     {                                                                          \
         /* create const instance on host*/                                     \
         const PMACC_JOIN(Name,_t) Name;                                        \

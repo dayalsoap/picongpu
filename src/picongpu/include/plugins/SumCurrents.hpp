@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera, Felix Schmitt
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Felix Schmitt, Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -21,7 +22,7 @@
 
 
 #ifndef SUMCURRENTS_HPP
-#define	SUMCURRENTS_HPP
+#define    SUMCURRENTS_HPP
 
 #include <iostream>
 
@@ -33,7 +34,6 @@
 
 #include "fields/FieldJ.hpp"
 
-#include "basicOperations.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 #include "plugins/ILightweightPlugin.hpp"
 
@@ -43,7 +43,7 @@ using namespace PMacc;
 
 namespace po = boost::program_options;
 
-typedef typename FieldJ::DataBoxType J_DataBox;
+typedef FieldJ::DataBoxType J_DataBox;
 
 template<class Mapping>
 __global__ void kernelSumCurrents(J_DataBox fieldJ, float3_X* gCurrent, Mapping mapper)
@@ -133,9 +133,9 @@ public:
                                    gCurrent.z() * CELL_WIDTH * CELL_HEIGHT);
 #endif
         float3_64 realCurrent_SI(
-                                 double(realCurrent.x()) * (UNIT_CHARGE / UNIT_TIME),
-                                 double(realCurrent.y()) * (UNIT_CHARGE / UNIT_TIME),
-                                 double(realCurrent.z()) * (UNIT_CHARGE / UNIT_TIME));
+                                 float_64(realCurrent.x()) * (UNIT_CHARGE / UNIT_TIME),
+                                 float_64(realCurrent.y()) * (UNIT_CHARGE / UNIT_TIME),
+                                 float_64(realCurrent.z()) * (UNIT_CHARGE / UNIT_TIME));
 
         /*FORMAT OUTPUT*/
         typedef std::numeric_limits< float_64 > dbl;
@@ -201,5 +201,5 @@ private:
 }
 
 
-#endif	/* SUMCURRENTS_HPP */
+#endif    /* SUMCURRENTS_HPP */
 

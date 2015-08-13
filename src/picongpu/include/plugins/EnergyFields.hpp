@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Axel Huebl, Felix Schmitt, Heiko Burau, Rene Widera,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -33,7 +34,6 @@
 #include "fields/FieldB.hpp"
 #include "fields/FieldE.hpp"
 
-#include "basicOperations.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 #include "plugins/ISimulationPlugin.hpp"
 
@@ -99,7 +99,7 @@ private:
 
     nvidia::reduce::Reduce* localReduce;
 
-    typedef typename promoteType<float_64, FieldB::ValueType>::type EneVectorType;
+    typedef promoteType<float_64, FieldB::ValueType>::type EneVectorType;
 
 public:
 

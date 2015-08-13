@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2014 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch
+ * Copyright 2013-2015 Axel Huebl, Heiko Burau, Rene Widera, Richard Pausch,
+ *                     Benjamin Worpitz
  *
  * This file is part of PIConGPU.
  *
@@ -21,7 +22,7 @@
 
 
 #ifndef PARTICLEPUSHERAXL_HPP
-#define	PARTICLEPUSHERAXL_HPP
+#define    PARTICLEPUSHERAXL_HPP
 
 #include "simulation_defines.hpp"
 
@@ -48,7 +49,7 @@ namespace picongpu
                 z = 2
             };
 
-            HDINLINE float_X levichivita( const uint i, const uint j, const uint k )
+            HDINLINE float_X levichivita( const unsigned int i, const unsigned int j, const unsigned int k )
             {
                 if( i == j || j == k || i == k ) return float_X(0.0);
 
@@ -184,5 +185,5 @@ namespace picongpu
     } //namespace
 }
 
-#endif	/* PARTICLEPUSHERAXL_HPP */
+#endif    /* PARTICLEPUSHERAXL_HPP */
 
