@@ -1,6 +1,5 @@
 /**
- * Copyright 2013-2015 Rene Widera, Felix Schmitt, Benjamin Worpitz,
- *                     Alexander Grund
+ * Copyright 2015 Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -21,34 +20,32 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-#include <string>
+#pragma once
 
 namespace PMacc
 {
-    typedef std::string SimulationDataId;
+namespace traits
+{
 
-    /**
-     * Interface for simulation data which should be registered at DataConnector
-     * for file output, visualization, etc.
-     */
-    class ISimulationData
-    {
-    public:
-        virtual ~ISimulationData(){}
-        /**
-         * Synchronizes simulation data, meaning accessing (host side) data
-         * will return up-to-date values.
-         */
-        virtual void synchronize() = 0;
+/** Get type with empty default constructor
+ *
+ * the returned type must fulfill the points:
+ *   1. empty constructor
+ *   2. no default initialized member inside the empty constructor
+ *   3. all member must fulfill point 1. and 2.
+ *   4. all base classes must fulfill 1. and 2.
+ *
+ * The result is typical used to define structs/classes in the cuda shared memory
+ *
+ * @tparam T_Type any object (class or typename)
+ *
+ * @treturn ::type
+ */
+template<typename T_Type>
+struct GetEmptyDefaultConstructibleType;
 
-        /**
-         * Return the globally unique identifier for this simulation data.
-         *
-         * @return globally unique identifier
-         */
-        virtual SimulationDataId getUniqueId() = 0;
 
-    };
-}
+}//namespace traits
+
+}//namespace PMacc

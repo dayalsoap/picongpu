@@ -1,6 +1,5 @@
 /**
- * Copyright 2013-2015 Rene Widera, Felix Schmitt, Benjamin Worpitz,
- *                     Alexander Grund
+ * Copyright 2015 Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -21,34 +20,29 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#pragma once
 
-#include <string>
+#pragma once
 
 namespace PMacc
 {
-    typedef std::string SimulationDataId;
+namespace expressions
+{
 
-    /**
-     * Interface for simulation data which should be registered at DataConnector
-     * for file output, visualization, etc.
+/** did nothing
+ *
+ * this is a empty expression
+ */
+struct DoNothing
+{
+    /** did nothing with the given input
+     *
+     * @tparam T_Type any type/class
      */
-    class ISimulationData
+    template<typename T_Type>
+    HDINLINE void operator()( const T_Type& ) const
     {
-    public:
-        virtual ~ISimulationData(){}
-        /**
-         * Synchronizes simulation data, meaning accessing (host side) data
-         * will return up-to-date values.
-         */
-        virtual void synchronize() = 0;
+    }
+};
 
-        /**
-         * Return the globally unique identifier for this simulation data.
-         *
-         * @return globally unique identifier
-         */
-        virtual SimulationDataId getUniqueId() = 0;
-
-    };
-}
+}//namespace expressions
+}//namespace PMacc
