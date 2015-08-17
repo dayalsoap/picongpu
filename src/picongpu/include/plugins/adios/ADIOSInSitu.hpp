@@ -88,46 +88,170 @@ namespace picongpu
 		var_id % std::string(name) % offset.toString() % dimensions.toString() % globalDimensions.toString();
 	    return var_id;
 	}
-
-// struct ThreadParams
-// {
-//     uint32_t currentStep;                   /** current simulation step */
-//     std::string fullFilename;
-
-//     /** current dump is a checkpoint */
-//     bool isCheckpoint;
-//     ADIOS_FILE* fp;                          /* file pointer for checkpoint file */
-
-//     MPI_Comm adiosComm;                     /* MPI communicator for adios lib */
-//     bool adiosBufferInitialized;            /* set if ADIOS buffer has been allocated */
-//     int64_t adiosFileHandle;                /* ADIOS file handle */
-//     int64_t adiosGroupHandle;               /* ADIOS group handle */
-//     uint64_t adiosGroupSize;                /* size of ADIOS group in bytes */
-//     uint32_t adiosAggregators;              /* number of ADIOS aggregators for MPI_AGGREGATE */
-//     uint32_t adiosOST;                      /* number of ADIOS OST for MPI_AGGREGATE */
-//     std::string adiosBasePath;              /* base path for the current step */
-//     std::string adiosCompression;           /* ADIOS data transform compression method */
-
-//     PMacc::math::UInt64<simDim> fieldsSizeDims;
-//     PMacc::math::UInt64<simDim> fieldsGlobalSizeDims;
-//     PMacc::math::UInt64<simDim> fieldsOffsetDims;
-
-//     std::list<int64_t> adiosFieldVarIds;        /* var IDs for fields in order of appearance */
-//     std::list<int64_t> adiosParticleAttrVarIds; /* var IDs for particle attributes in order of appearance */
-//     std::list<int64_t> adiosSpeciesIndexVarIds; /* var IDs for species index tables in order of appearance */
-
-//     GridLayout<simDim> gridLayout;
-//     MappingDesc *cellDescription;
-
-//     float *fieldBfr;                                /* temp. buffer for fields */
-
-//     Window window;                                  /* window describing the volume to be dumped */
-
-//     DataSpace<simDim> localWindowToDomainOffset;    /** offset from local moving window to local domain */
-// };
 	
 	class ADIOSInSitu : public ILightweightPlugin
 	{
+	private:
+
+	    template<typename UnitType>
+	    static std::vector<float_64> createUnit(UnitType unit, uint32_t numComponents)
+		{
+		    std::vector<float_64> tmp(numComponents);
+		    for (uint32_t i = 0; i < numComponents; ++i)
+			tmp[i] = unit[i];
+		    return tmp;
+		}
+
+	    /**
+	     * Write calculated fields to adios file.
+	     */
+	    template< typename T >
+	    struct GetFields
+	    {
+	    private:
+		typedef typename T::ValueType ValueType;
+		typedef typename GetComponentsType<ValueType>::type ComponentType;
+
+	    public:
+
+		HDINLINE void operator()(ThreadParams* params)
+		    {
+#ifndef __CUDA_ARCH__
+			DataConnector &dc = Environment<simDim>::get().DataConnector();
+			
+			T* field = &(dc.getData<T > (T::getName()));
+			params->gridLayout = field->getGridLayout();
+
+			PICToAdios<ComponentType> adiosType;
+			writeField(params,
+				   sizeof(ComponentType),
+				   adiosType.type,
+				   GetNComponents<ValueType>::value,
+				   T::getName(),
+				   field->getHostDataBox().getPointer());
+
+			dc.releaseData(T::getName());
+#endif
+		    }
+
+	    }; // struct GetFields
+	    
+    /** Calculate FieldTmp with given solver and particle species
+     * and write them to adios.
+     *
+     * FieldTmp is calculated on device and than dumped to adios.
+     */
+    template< typename Solver, typename Species >
+    struct GetFields<FieldTmpOperation<Solver, Species> >
+    {
+
+        /*
+         * This is only a wrapper function to allow disable nvcc warnings.
+         * Warning: calling a __host__ function from __host__ __device__
+         * function.
+         * Use of PMACC_NO_NVCC_HDWARNING is not possible if we call a virtual
+         * method inside of the method were we disable the warnings.
+         * Therefore we create this method and call a new method were we can
+         * call virtual functions.
+         */
+        PMACC_NO_NVCC_HDWARNING
+        HDINLINE void operator()(ThreadParams* tparam)
+        {
+            this->operator_impl(tparam);
+        }
+    private:
+        typedef typename FieldTmp::ValueType ValueType;
+        typedef typename GetComponentsType<ValueType>::type ComponentType;
+
+        /** Create a name for the adios identifier.
+         */
+        static std::string getName()
+        {
+            std::stringstream str;
+            str << Solver().getName();
+            str << "_";
+            str << Species::FrameType::getName();
+            return str.str();
+        }
+
+        HINLINE void operator_impl(ThreadParams* params)
+        {
+            DataConnector &dc = Environment<>::get().DataConnector();
+
+            /*## update field ##*/
+
+            /*load FieldTmp without copy data to host*/
+            FieldTmp* fieldTmp = &(dc.getData<FieldTmp > (FieldTmp::getName(), true));
+            /*load particle without copy particle data to host*/
+            Species* speciesTmp = &(dc.getData<Species >(Species::FrameType::getName(), true));
+
+            fieldTmp->getGridBuffer().getDeviceBuffer().setValue(ValueType::create(0.0));
+            /*run algorithm*/
+            fieldTmp->computeValue < CORE + BORDER, Solver > (*speciesTmp, params->currentStep);
+
+            EventTask fieldTmpEvent = fieldTmp->asyncCommunication(__getTransactionEvent());
+            __setTransactionEvent(fieldTmpEvent);
+            /* copy data to host that we can write same to disk*/
+            fieldTmp->getGridBuffer().deviceToHost();
+            dc.releaseData(Species::FrameType::getName());
+            /*## finish update field ##*/
+
+            const uint32_t components = GetNComponents<ValueType>::value;
+            PICToAdios<ComponentType> adiosType;
+
+            params->gridLayout = fieldTmp->getGridLayout();
+            /*write data to ADIOS file*/
+            writeField(params,
+                       sizeof(ComponentType),
+                       adiosType.type,
+                       components,
+                       getName(),
+                       fieldTmp->getHostDataBox().getPointer());
+
+            dc.releaseData(FieldTmp::getName());
+
+        }
+
+    };
+
+	    static void defineFieldVar(ThreadParams* params,
+				       uint32_t nComponents, ADIOS_DATATYPES adiosType, const std::string name,
+				       std::vector<float_64> unit)
+		{
+		    const std::string name_lookup_tpl[] = {"x", "y", "z", "w"};
+
+		    for (uint32_t c = 0; c < nComponents; c++)
+		    {
+			std::stringstream datasetName;
+			datasetName << params->adiosBasePath << ADIOS_PATH_FIELDS << name;
+			if (nComponents > 1)
+			    datasetName << "/" << name_lookup_tpl[c];
+
+			/* define adios var for field, e.g. field_FieldE_y */
+			const char* path = NULL;
+			int64_t adiosFieldVarId = defineAdiosVar<simDim>(
+			    params->adiosGroupHandle,
+			    datasetName.str().c_str(),
+			    path,
+			    adiosType,
+			    params->fieldsSizeDims,
+			    params->fieldsGlobalSizeDims,
+			    params->fieldsOffsetDims,
+			    true,
+			    params->adiosCompression);
+	    
+			params->adiosFieldVarIds.push_back(adiosFieldVarId);
+
+			/* already add the sim_unit attribute so `adios_group_size` calculates
+			 * the reservation for the buffer correctly */
+			AdiosDoubleType adiosDoubleType;
+
+			ADIOS_CMD(adios_define_attribute(params->adiosGroupHandle,
+							 "sim_unit", datasetName.str().c_str(), adiosDoubleType.type,
+							 flt2str(unit.at(c)).c_str(), ""));
+		    }
+		}
+	    
 	public:
 	    ADIOSInSitu()
 		{
@@ -192,8 +316,66 @@ namespace picongpu
 		{
 		    /* called when plugin is unloaded, cleanup here */
 		}
+
+    static void writeField(ThreadParams *params, const uint32_t sizePtrType,
+                           ADIOS_DATATYPES adiosType,
+                           const uint32_t nComponents, const std::string name,
+                           void *ptr)
+    {
+        log<picLog::INPUT_OUTPUT > ("ADIOS: write field: %1% %2% %3%") %
+            name % nComponents % ptr;
+
+        /* data to describe source buffer */
+        GridLayout<simDim> field_layout = params->gridLayout;
+        DataSpace<simDim> field_full = field_layout.getDataSpace();
+        DataSpace<simDim> field_no_guard = params->window.localDimensions.size;
+        DataSpace<simDim> field_guard = field_layout.getGuard() + params->localWindowToDomainOffset;
+
+        /* write the actual field data */
+        for (uint32_t d = 0; d < nComponents; d++)
+        {
+            const size_t plane_full_size = field_full[1] * field_full[0] * nComponents;
+            const size_t plane_no_guard_size = field_no_guard[1] * field_no_guard[0];
+
+            /* copy strided data from source to temporary buffer
+             *
+             * \todo use d1Access as in `include/plugins/hdf5/writer/Field.hpp`
+             */
+            const int maxZ = simDim == DIM3 ? field_no_guard[2] : 1;
+            const int guardZ = simDim == DIM3 ? field_guard[2] : 0;
+            for (int z = 0; z < maxZ; ++z)
+            {
+                for (int y = 0; y < field_no_guard[1]; ++y)
+                {
+                    const size_t base_index_src =
+                                (z + guardZ) * plane_full_size +
+                                (y + field_guard[1]) * field_full[0] * nComponents;
+
+                    const size_t base_index_dst =
+                                z * plane_no_guard_size +
+                                y * field_no_guard[0];
+
+                    for (int x = 0; x < field_no_guard[0]; ++x)
+                    {
+                        size_t index_src = base_index_src + (x + field_guard[0]) * nComponents + d;
+                        size_t index_dst = base_index_dst + x;
+
+                        params->fieldBfr[index_dst] = ((float_32*)ptr)[index_src];
+                    }
+                }
+            }
+
+            /* Write the actual field data. The id is on the front of the list. */
+            if (params->adiosFieldVarIds.empty())
+                throw std::runtime_error("Cannot write field (var id list is empty)");
+
+            int64_t adiosFieldVarId = *(params->adiosFieldVarIds.begin());
+            params->adiosFieldVarIds.pop_front();
+            ADIOS_CMD(adios_write_byid(params->adiosFileHandle, adiosFieldVarId, params->fieldBfr));
+        }
+    }
 	    
-	    ThreadParams2 mThreadParams;
+	    ThreadParams mThreadParams;
 	    MappingDesc *cellDescription;
 	    //uint32_t notifyPeriod;
 	    std::string filename;

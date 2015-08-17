@@ -133,8 +133,8 @@ private:
       , InSituVolumeRenderer
 #endif
 #if (ENABLE_ADIOS == 1)
-	, adios::ADIOSWriter
-	, adiosinsitu::ADIOSInSitu
+      , adios::ADIOSWriter
+      , adiosinsitu::ADIOSInSitu
 #endif
 #if (ENABLE_HDF5 == 1)
       , hdf5::HDF5Writer

@@ -76,7 +76,7 @@ namespace po = boost::program_options;
                   << __FILE__ << ":" << __LINE__ << adios_errmsg();            \
 }
 
-struct ThreadParams2
+struct ThreadParams
 {
     uint32_t currentStep;                   /** current simulation step */
     std::string fullFilename;
