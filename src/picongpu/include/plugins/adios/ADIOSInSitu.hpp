@@ -209,7 +209,7 @@ namespace picongpu
                        fieldTmp->getHostDataBox().getPointer());
 
             dc.releaseData(FieldTmp::getName());
-
+	    
         }
 
     };
@@ -251,9 +251,106 @@ namespace picongpu
 							 flt2str(unit.at(c)).c_str(), ""));
 		    }
 		}
+
+    /**
+     * Collect field sizes to set adios group size.
+     */
+	    template< typename T >
+	    struct CollectFieldsSizes
+	    {
+	    public:
+		typedef typename T::ValueType ValueType;
+		typedef typename T::UnitValueType UnitType;
+		typedef typename GetComponentsType<ValueType>::type ComponentType;
+		
+		static std::vector<float_64> getUnit()
+		    {
+			UnitType unit = T::getUnit();
+			return createUnit(unit, T::numComponents);
+		    }
+
+		HDINLINE void operator()(ThreadParams* params)
+		    {
+#ifndef __CUDA_ARCH__
+			const uint32_t components = T::numComponents;
+
+			// adios buffer size for this dataset (all components)
+			uint64_t localGroupSize =
+			    params->window.localDimensions.size.productOfComponents() *
+			    sizeof(ComponentType) *
+			    components;
+
+			params->adiosGroupSize += localGroupSize;
+
+			PICToAdios<ComponentType> adiosType;
+			defineFieldVar(params, components, adiosType.type, T::getName(), getUnit());
+#endif
+		    }
+	    };
+
+	        /**
+     * Collect field sizes to set adios group size.
+     * Specialization.
+     */
+	    template< typename Solver, typename Species >
+	    struct CollectFieldsSizes<FieldTmpOperation<Solver, Species> >
+	    {
+	    public:
+
+		PMACC_NO_NVCC_HDWARNING
+		HDINLINE void operator()(ThreadParams* tparam)
+		    {
+			this->operator_impl(tparam);
+		    }
+
+	    private:
+		typedef typename FieldTmp::ValueType ValueType;
+		typedef typename FieldTmp::UnitValueType UnitType;
+		typedef typename GetComponentsType<ValueType>::type ComponentType;
+
+		/** Create a name for the adios identifier.
+		 */
+		static std::string getName()
+		    {
+			std::stringstream str;
+			str << Solver().getName();
+			str << "_";
+			str << Species::FrameType::getName();
+			return str.str();
+		    }
+
+		/** Get the unit for the result from the solver*/
+		static std::vector<float_64> getUnit()
+		    {
+			UnitType unit = FieldTmp::getUnit<Solver>();
+			const uint32_t components = GetNComponents<ValueType>::value;
+			return createUnit(unit, components);
+		    }
+
+		HINLINE void operator_impl(ThreadParams* params)
+		    {
+			const uint32_t components = GetNComponents<ValueType>::value;
+
+			// adios buffer size for this dataset (all components)
+			uint64_t localGroupSize =
+			    params->window.localDimensions.size.productOfComponents() *
+			    sizeof(ComponentType) *
+			    components;
+
+			params->adiosGroupSize += localGroupSize;
+
+			PICToAdios<ComponentType> adiosType;
+			defineFieldVar(params, components, adiosType.type, getName(), getUnit());
+		    }
+
+	    };
 	    
 	public:
-	    ADIOSInSitu()
+	    ADIOSInSitu() :
+		filename("adiospicongpu.bp"),
+		flexpathTransportParams("QUEUE_SIZE=10"),
+		notifyPeriod(0),
+		lastSpeciesSyncStep(PMacc::traits::limits::Max<uint32_t>::value)
 		{
 		    /* register our plugin during creation */
 		    Environment<>::get().PluginConnector().registerPlugin(this);
@@ -379,14 +476,11 @@ namespace picongpu
 	    MappingDesc *cellDescription;
 	    //uint32_t notifyPeriod;
 	    std::string filename;
-	    std::string checkpointFilename;
-	    std::string restartFilename;
 	    std::string checkpointDirectory;
 	    
-	    /* select MPI method, #OSTs and #aggregators */
-	    std::string mpiTransportParams;
-	    
-	    uint32_t restartChunkSize;
+	    /* Flexpath Queuesize */
+	    std::string flexpathTransportParams;	   
+	    uint32_t lastSpeciesSyncStep;
 	    
 	    DataSpace<simDim> mpi_pos;
 	    DataSpace<simDim> mpi_size;
