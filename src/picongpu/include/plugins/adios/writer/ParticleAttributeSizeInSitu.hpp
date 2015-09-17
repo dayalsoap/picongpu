@@ -22,7 +22,7 @@
 
 #include "types.h"
 #include "simulation_types.hpp"
-#include "plugins/adios/ADIOSWriter.def"
+#include "plugins/adios/ADIOSInSitu.def"
 #include "traits/PICToAdios.hpp"
 #include "traits/GetComponentsType.hpp"
 #include "traits/GetNComponents.hpp"
@@ -106,11 +106,12 @@ struct ParticleAttributeSize
 				    group_id, name, path, type, 0, 0, 0);
 	    } else {
 		    // first we have to define the variables that hold the array dimensions.
+                    g_dimensions = elements; g_offset = globalOffset;
 		    var_id = adios_define_var(
 				    group_id, name, path, type,
-				    dimensions.revert().toString(",", "").c_str(),
+				    std::string("g_dimensions").c_str()/*dimensions.revert().toString(",", "").c_str()*/,
 				    globalDimensions.revert().toString(",", "").c_str(),
-				    offset.revert().toString(",", "").c_str());
+				    std::string("g_offset").c_str()/*offset.revert().toString(",", "").c_str()*/);
 	    }
 
             params->adiosParticleAttrVarIds.push_back(var_id);

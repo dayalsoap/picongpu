@@ -79,7 +79,6 @@ namespace po = boost::program_options;
 struct ThreadParams
 {
     uint32_t currentStep;                   /** current simulation step */
-    uint32_t hasInitialized;
     std::string fullFilename;
 
     /** current dump is a checkpoint */
@@ -172,6 +171,8 @@ int64_t defineAdiosVar(int64_t group_id,
                        PMacc::math::UInt64<DIM> offset,
                        bool compression,
                        std::string compressionMethod);
+
+int64_t g_dimensions, g_offset;
 
 } //namespace adios
 } //namespace picongpu

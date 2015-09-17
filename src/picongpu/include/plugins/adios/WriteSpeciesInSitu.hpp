@@ -23,7 +23,7 @@
 
 #include "types.h"
 #include "simulation_types.hpp"
-#include "plugins/adios/ADIOSWriter.def"
+#include "plugins/adios/ADIOSInSitu.def"
 
 #include "plugins/ISimulationPlugin.hpp"
 #include <boost/mpl/vector.hpp>

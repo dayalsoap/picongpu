@@ -24,7 +24,7 @@
 
 #include "types.h"
 #include "simulation_types.hpp"
-#include "plugins/adios/ADIOSWriter.def"
+#include "plugins/adios/ADIOSInSitu.def"
 
 #include "plugins/ISimulationPlugin.hpp"
 #include <boost/mpl/vector.hpp>
@@ -124,6 +124,7 @@ public:
                 myParticleOffset += allNumParticles[i];
         }
 
+	g_dimensions = myNumParticles; g_offset = myParticleOffset;
         /* iterate over all attributes of this species */
         ForEach<typename AdiosFrameType::ValueTypeSeq, adiosinsitu::ParticleAttributeSize<bmpl::_1> > attributeSize;
         attributeSize(params, (FrameType::getName() + std::string("/") + subGroup).c_str(),

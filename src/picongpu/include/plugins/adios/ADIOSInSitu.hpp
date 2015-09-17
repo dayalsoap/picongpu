@@ -470,6 +470,7 @@ namespace picongpu
 			     */
 			    threadParams->adiosParticleAttrVarIds.clear();
 			    threadParams->adiosSpeciesIndexVarIds.clear();
+                            g_dimensions = 1; g_offset = 1;
 			    log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) counting particles.");
 
 			    ForEach<FileOutputParticles, ADIOSCountParticles<bmpl::_1> > adiosCountParticles;
