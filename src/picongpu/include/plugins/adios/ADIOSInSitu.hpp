@@ -379,7 +379,7 @@ namespace picongpu
 		{
 		    /* register our plugin during creation */
 		    Environment<>::get().PluginConnector().registerPlugin(this);
-		    fprintf(stderr, "Plugin instantiated.\n");
+		    fprintf(stderr, "adiosinsitu Plugin instantiated.\n");
 		}
 
 	    std::string pluginGetName() const
@@ -389,27 +389,7 @@ namespace picongpu
 
 	    void notify(uint32_t currentStep)
 		{
-		    const PMacc::Selection<simDim>& localDomain =
-			Environment<simDim>::get().SubGrid().getLocalDomain();
-		    mThreadParams.currentStep = currentStep;
-		    mThreadParams.cellDescription = this->cellDescription;
-		    double start = MPI_Wtime();
-		    __getTransactionEvent().waitForFinished();
-		    double end = MPI_Wtime();
-		    /* notification callback for simulation step currentStep
-		     * called every notifyPeriod steps */
-		    fprintf(stderr, "Jai's plugin notified %lf.\n", end-start);
-		    if (currentStep == INITIAL_STEP) {
-			// define field vars.
-			// define species vars.
-			// define particle vars.
-		    }
-		    // pull data from GPU
-		    // write it.
-
-		    if (currentStep == FINAL_STEP) {
-			//finalize.
-		    }
+		    notificationReceived(currentStep);
 		}
 
 	    void pluginRegisterHelp(po::options_description& desc)
@@ -422,11 +402,35 @@ namespace picongpu
 
 	    void setMappingDescription(MappingDesc *cellDescription)
 		{
+		    this->cellDescription = cellDescription;
 		}
 
 	private:
-	    uint32_t notifyPeriod;
+	    void notificationReceived(uint32_t currentStep)
+		{
+		    const PMacc::Selection<simDim>& localDomain =
+			Environment<simDim>::get().SubGrid().getLocalDomain();
+		    mThreadParams.currentStep = currentStep;
+		    mThreadParams.cellDescription = this->cellDescription;
+		    double start = MPI_Wtime();
+		    __getTransactionEvent().waitForFinished();
+		    double end = MPI_Wtime();
+		    /* notification callback for simulation step currentStep
+		     * called every notifyPeriod steps */
+		    fprintf(stderr, "Jai's plugin notified %lf.\n", end-start);
+		    if (mThreadParams.hasInitialized == 0) {
+			fprintf(stderr, "has not initialized.\n");
+			// define field vars.
+			// define species vars.
+			// define particle vars.
+			mThreadParams.hasInitialized = 1;
+		    } else {
+			fprintf(stderr, "Has initialized already.\n");
+		    }
+		    // pull data from GPU
+		    // write it.
 
+		}
 	    void pluginLoad()
 		{
 		    /* called when plugin is loaded, command line flags are available here
@@ -436,6 +440,8 @@ namespace picongpu
 
 	    void pluginUnload()
 		{
+		    // add finalize stuff here?
+		    fprintf(stderr, "adiosinsitu pluginunload called.\n");
 		    /* called when plugin is unloaded, cleanup here */
 		}
 
@@ -605,7 +611,7 @@ namespace picongpu
 		    return NULL;
 		}
 	    
-
+	    uint32_t notifyPeriod;
 	    ThreadParams mThreadParams;
 	    MappingDesc *cellDescription;
 	    //uint32_t notifyPeriod;
