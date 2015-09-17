@@ -566,7 +566,8 @@ namespace picongpu
 			    throw std::runtime_error("Cannot write field (var id list is empty)");
 
 			int64_t adiosFieldVarId = *(params->adiosFieldVarIds.begin());
-			//params->adiosFieldVarIds.pop_front(); /*Flexpath adapt*/
+			params->adiosFieldVarIds.pop_front();
+			params->adiosFieldVarIds.push_back(adiosFieldVarId); /*Flexpath adapt*/
 			ADIOS_iCMD(adios_write_byid(params->adiosFileHandle, adiosFieldVarId, params->fieldBfr));
 		    }
 		}
