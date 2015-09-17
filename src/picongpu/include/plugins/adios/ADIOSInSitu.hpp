@@ -268,11 +268,12 @@ namespace picongpu
 
 			/* already add the sim_unit attribute so `adios_group_size` calculates
 			 * the reservation for the buffer correctly */
-			AdiosDoubleType adiosDoubleType;
+                        /*Flexpath adapt*/
+			/*AdiosDoubleType adiosDoubleType;
 
 			ADIOS_iCMD(adios_define_attribute(params->adiosGroupHandle,
 							  "sim_unit", datasetName.str().c_str(), adiosDoubleType.type,
-							  flt2str(unit.at(c)).c_str(), ""));
+							  flt2str(unit.at(c)).c_str(), ""));*/
 		    }
 		}
 
@@ -491,7 +492,7 @@ namespace picongpu
 			    throw std::runtime_error("Cannot write field (var id list is empty)");
 
 			int64_t adiosFieldVarId = *(params->adiosFieldVarIds.begin());
-			params->adiosFieldVarIds.pop_front();
+			//params->adiosFieldVarIds.pop_front(); /*Flexpath adapt*/
 			ADIOS_iCMD(adios_write_byid(params->adiosFileHandle, adiosFieldVarId, params->fieldBfr));
 		    }
 		}
@@ -538,8 +539,9 @@ namespace picongpu
 		    /* collect size information for each field to be written and define
 		     * field variables
 		     */
+                    /*calls adios_define_var & adios_define_attribute*/
 		    log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) collecting fields.");
-		    threadParams->adiosFieldVarIds.clear();
+		    //threadParams->adiosFieldVarIds.clear(); /*Flexpath adapt*/
 		    ForEach<FileOutputFields, CollectFieldsSizes<bmpl::_1> > forEachCollectFieldsSizes;
 		    forEachCollectFieldsSizes(threadParams);
 		    
