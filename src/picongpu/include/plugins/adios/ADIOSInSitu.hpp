@@ -253,7 +253,7 @@ namespace picongpu
 
 			/* define adios var for field, e.g. field_FieldE_y */
 			const char* path = NULL;
-			int64_t adiosFieldVarId = defineAdiosVar<simDim>(
+			/*int64_t adiosFieldVarId = defineAdiosVar<simDim>(
 			    params->adiosGroupHandle,
 			    datasetName.str().c_str(),
 			    path,
@@ -262,9 +262,31 @@ namespace picongpu
 			    params->fieldsGlobalSizeDims,
 			    params->fieldsOffsetDims,
 			    true,
-			    params->adiosCompression);
+			    params->adiosCompression);*/
+                        int64_t group_id = params->adiosGroupHandle;
+                        const char * name = datasetName.str().c_str();
+                        enum ADIOS_DATATYPES type = adiosType;
+                        PMacc::math::UInt64<simDim> dimensions = params->fieldsSizeDims;
+                        PMacc::math::UInt64<simDim> globalDimensions = params->fieldsGlobalSizeDims;
+                        PMacc::math::UInt64<simDim> offset = params->fieldsOffsetDims;
 
-			params->adiosFieldVarIds.push_back(adiosFieldVarId);
+			int64_t var_id = 0;
+			if ((simDim == 1) && (globalDimensions.productOfComponents() == 1)) {
+				/* scalars need empty size strings */
+				var_id = adios_define_var(
+						group_id, name, path, type, 0, 0, 0);
+			} else {
+				// first we have to define the variables that hold the array dimensions.
+				var_id = adios_define_var(
+						group_id, name, path, type,
+						dimensions.revert().toString(",", "").c_str(),
+						globalDimensions.revert().toString(",", "").c_str(),
+						offset.revert().toString(",", "").c_str());
+			}
+
+			log<picLog::INPUT_OUTPUT > ("ADIOS: Defined varID=%1% for '%2%' at %3% for %4%/%5% elements") %
+				var_id % std::string(name) % offset.toString() % dimensions.toString() % globalDimensions.toString();
+			params->adiosFieldVarIds.push_back(var_id);
 
 			/* already add the sim_unit attribute so `adios_group_size` calculates
 			 * the reservation for the buffer correctly */
@@ -402,6 +424,8 @@ namespace picongpu
                     /*Flexpath adapt*/
 		    if (currentStep == INITIAL_STEP) {
 			// define field vars.
+			    /* y direction can be negative for first gpu */
+			    const PMacc::Selection<simDim>& localDomain = Environment<simDim>::get().SubGrid().getLocalDomain();
 			    /* create adios group for fields without statistics */
 			    ADIOS_iCMD(adios_declare_group(&(mThreadParams.adiosGroupHandle),
 			            ADIOS_GROUP_NAME,
@@ -411,6 +435,34 @@ namespace picongpu
 			    /* select MPI method, #OSTs and #aggregators */
 			    ADIOS_iCMD(adios_select_method(mThreadParams.adiosGroupHandle,
 				      "MPI_AGGREGATE", flexpathTransportParams.c_str(), ""));
+
+                            ThreadParams *threadParams = &mThreadParams;
+			    threadParams->fieldsOffsetDims = precisionCast<uint64_t>(localDomain.offset);
+
+			    /* write created variable values */
+			    for (uint32_t d = 0; d < simDim; ++d)
+			    {
+				    /* dimension 1 is y and is the direction of the moving window (if any) */
+				    if (1 == d)
+				    {
+					    uint64_t offset = std::max(0, localDomain.offset.y() -
+							    threadParams->window.globalDimensions.offset.y());
+					    threadParams->fieldsOffsetDims[d] = offset;
+				    }
+
+				    threadParams->fieldsSizeDims[d] = threadParams->window.localDimensions.size[d];
+				    threadParams->fieldsGlobalSizeDims[d] = threadParams->window.globalDimensions.size[d];
+			    }
+
+			    /* collect size information for each field to be written and define
+			     * field variables
+			     */
+			    log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) collecting fields.");
+			    //threadParams->adiosFieldVarIds.clear(); /*Flexpath adaptation*/
+			    ForEach<FileOutputFields, CollectFieldsSizes<bmpl::_1> > forEachCollectFieldsSizes;
+			    forEachCollectFieldsSizes(threadParams);
+			    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) collecting fields.");
+
 
 			// define species vars.
 			// define particle vars.
