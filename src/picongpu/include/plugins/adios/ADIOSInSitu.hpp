@@ -463,9 +463,19 @@ namespace picongpu
 			    forEachCollectFieldsSizes(threadParams);
 			    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) collecting fields.");
 
-
 			// define species vars.
 			// define particle vars.
+			    /* collect size information for all attributes of all species and define
+			     * particle variables
+			     */
+			    threadParams->adiosParticleAttrVarIds.clear();
+			    threadParams->adiosSpeciesIndexVarIds.clear();
+			    log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) counting particles.");
+
+			    ForEach<FileOutputParticles, ADIOSCountParticles<bmpl::_1> > adiosCountParticles;
+			    adiosCountParticles(threadParams, std::string());
+			    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) counting particles.");
+
 		    }
 		    // pull data from GPU
 		    // write it.
@@ -582,13 +592,13 @@ namespace picongpu
 		    /*ADIOS_CMD(adios_select_method(threadParams->adiosGroupHandle,
 						  "MPI_AGGREGATE", mpiTransportParams.c_str(), ""));*/
 
-		    threadParams->fieldsOffsetDims = precisionCast<uint64_t>(localDomain.offset);
+		    //threadParams->fieldsOffsetDims = precisionCast<uint64_t>(localDomain.offset);
 
 		    /* write created variable values */
-		    for (uint32_t d = 0; d < simDim; ++d)
-		    {
+		    /*for (uint32_t d = 0; d < simDim; ++d)
+		    {*/
 			/* dimension 1 is y and is the direction of the moving window (if any) */
-			if (1 == d)
+			/*if (1 == d)
 			{
 			    uint64_t offset = std::max(0, localDomain.offset.y() -
 						       threadParams->window.globalDimensions.offset.y());
@@ -597,30 +607,30 @@ namespace picongpu
 
 			threadParams->fieldsSizeDims[d] = threadParams->window.localDimensions.size[d];
 			threadParams->fieldsGlobalSizeDims[d] = threadParams->window.globalDimensions.size[d];
-		    }
+		    }*/
 
 		    /* collect size information for each field to be written and define
 		     * field variables
 		     */
                     /*calls adios_define_var & adios_define_attribute*/
-		    log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) collecting fields.");
+		    //log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) collecting fields.");
 		    //threadParams->adiosFieldVarIds.clear(); /*Flexpath adapt*/
-		    ForEach<FileOutputFields, CollectFieldsSizes<bmpl::_1> > forEachCollectFieldsSizes;
+		    /*ForEach<FileOutputFields, CollectFieldsSizes<bmpl::_1> > forEachCollectFieldsSizes;
 		    forEachCollectFieldsSizes(threadParams);
 		    
-		    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) collecting fields.");
+		    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) collecting fields.");*/
 
 		    /* collect size information for all attributes of all species and define
 		     * particle variables
 		     */
-		    threadParams->adiosParticleAttrVarIds.clear();
+		    /*threadParams->adiosParticleAttrVarIds.clear();
 		    threadParams->adiosSpeciesIndexVarIds.clear();
 		    log<picLog::INPUT_OUTPUT > ("ADIOS: (begin) counting particles.");
 		    
 		    ForEach<FileOutputParticles, ADIOSCountParticles<bmpl::_1> > adiosCountParticles;
 		    adiosCountParticles(threadParams, std::string());
 		    
-		    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) counting particles.");
+		    log<picLog::INPUT_OUTPUT > ("ADIOS: ( end ) counting particles.");*/
 
 		    /* allocate buffer in MB according to our current group size */
 		    /* `1 + mem` minimum 1 MiB that we can write attributes on empty GPUs */

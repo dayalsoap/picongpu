@@ -81,28 +81,49 @@ struct ParticleAttributeSize
                 datasetName << "/" << name_lookup[d];
 
             const char* path = NULL;
-            int64_t adiosParticleAttrId = defineAdiosVar<DIM1>(
+            /*Flexpath adapt*/
+            /*int64_t adiosParticleAttrId = defineAdiosVar<DIM1>(
                 params->adiosGroupHandle,
                 datasetName.str().c_str(),
                 path,
                 adiosType.type,
                 PMacc::math::UInt64<DIM1>(elements),
                 PMacc::math::UInt64<DIM1>(globalElements),
-                PMacc::math::UInt64<DIM1>(globalOffset),
-                true,
-                params->adiosCompression);
+                PMacc::math::UInt64<DIM1>(globalOffset));*///,
+                /*true,
+                params->adiosCompression);*/ /*flexpath adapt*/
+            int64_t group_id = params->adiosGroupHandle;
+            const char * name = datasetName.str().c_str();
+            enum ADIOS_DATATYPES type = adiosType.type;
+            PMacc::math::UInt64<DIM1> dimensions = PMacc::math::UInt64<DIM1>(elements);
+            PMacc::math::UInt64<DIM1> globalDimensions = PMacc::math::UInt64<DIM1>(globalElements);
+            PMacc::math::UInt64<DIM1> offset = PMacc::math::UInt64<DIM1>(globalOffset);
 
-            params->adiosParticleAttrVarIds.push_back(adiosParticleAttrId);
+	    int64_t var_id = 0;
+	    if ((simDim == 1) && (globalDimensions.productOfComponents() == 1)) {
+		    /* scalars need empty size strings */
+		    var_id = adios_define_var(
+				    group_id, name, path, type, 0, 0, 0);
+	    } else {
+		    // first we have to define the variables that hold the array dimensions.
+		    var_id = adios_define_var(
+				    group_id, name, path, type,
+				    dimensions.revert().toString(",", "").c_str(),
+				    globalDimensions.revert().toString(",", "").c_str(),
+				    offset.revert().toString(",", "").c_str());
+	    }
+
+            params->adiosParticleAttrVarIds.push_back(var_id);
 
             /* already add the sim_unit attribute so `adios_group_size` calculates
              * the reservation for the buffer correctly */
-            AdiosDoubleType adiosDoubleType;
+            //AdiosDoubleType adiosDoubleType;
 
             /* check if this attribute actually has a unit (unit.size() == 0 is no unit) */
-            if (unit.size() >= (d + 1))
+            /*if (unit.size() >= (d + 1))
                 ADIOS_CMD(adios_define_attribute_byvalue(params->adiosGroupHandle,
                           "sim_unit", datasetName.str().c_str(),
-                          adiosDoubleType.type, 1, (void*)&unit.at(d) ));
+                          adiosDoubleType.type, 1, (void*)&unit.at(d) ));*/ /*Flexpath adapt*/
         }
 
 

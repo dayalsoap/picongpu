@@ -135,7 +135,8 @@ public:
             traits::PICToAdios<uint64_t> adiosIndexType;
 
             const char* path = NULL;
-            int64_t adiosSpeciesIndexVar = defineAdiosVar<DIM1>(
+            /*Flexpath adapt*/
+            /*int64_t adiosSpeciesIndexVar = defineAdiosVar<DIM1>(
                 params->adiosGroupHandle,
                 (params->adiosBasePath + std::string(ADIOS_PATH_PARTICLES) +
                     FrameType::getName() + std::string("/") + subGroup +
@@ -146,9 +147,30 @@ public:
                 PMacc::math::UInt64<DIM1>(localTableSize * uint64_t(gc.getGlobalSize()) ),
                 PMacc::math::UInt64<DIM1>(localTableSize * uint64_t(gc.getGlobalRank()) ),
                 true,
-                params->adiosCompression);
+                params->adiosCompression);*/
+            
+	    int64_t group_id = params->adiosGroupHandle;
+	    const char * name = (params->adiosBasePath + std::string(ADIOS_PATH_PARTICLES) + FrameType::getName() + std::string("/") + subGroup + std::string("particles_info")).c_str();
+	    enum ADIOS_DATATYPES type = adiosIndexType.type;
+            PMacc::math::UInt64<DIM1> dimensions = PMacc::math::UInt64<DIM1>(localTableSize);
+            PMacc::math::UInt64<DIM1> globalDimensions = PMacc::math::UInt64<DIM1>(localTableSize * uint64_t(gc.getGlobalSize()) );
+            PMacc::math::UInt64<DIM1> offset = PMacc::math::UInt64<DIM1>(localTableSize * uint64_t(gc.getGlobalRank()) );
 
-            params->adiosSpeciesIndexVarIds.push_back(adiosSpeciesIndexVar);
+	    int64_t var_id = 0;
+	    if ((simDim == 1) && (globalDimensions.productOfComponents() == 1)) {
+		    /* scalars need empty size strings */
+		    var_id = adios_define_var(
+				    group_id, name, path, type, 0, 0, 0);
+	    } else {
+		    // first we have to define the variables that hold the array dimensions.
+		    var_id = adios_define_var(
+				    group_id, name, path, type,
+				    dimensions.revert().toString(",", "").c_str(),
+				    globalDimensions.revert().toString(",", "").c_str(),
+				    offset.revert().toString(",", "").c_str());
+	    }
+
+            params->adiosSpeciesIndexVarIds.push_back(var_id);
 
             params->adiosGroupSize += sizeof(uint64_t) * localTableSize * gc.getGlobalSize();
         }
