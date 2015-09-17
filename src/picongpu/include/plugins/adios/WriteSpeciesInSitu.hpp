@@ -42,7 +42,7 @@
 #include "plugins/kernel/CopySpecies.kernel"
 #include "mappings/kernel/AreaMapping.hpp"
 
-#include "plugins/adios/writer/ParticleAttribute.hpp"
+#include "plugins/adios/writer/ParticleAttributeInSitu.hpp"
 #include "compileTime/conversion/RemoveFromSeq.hpp"
 #include "particles/ParticleDescription.hpp"
 
@@ -53,7 +53,7 @@
 namespace picongpu
 {
 
-namespace adios
+namespace adiosinsitu
 {
 using namespace PMacc;
 
@@ -147,7 +147,7 @@ public:
             assert((uint64_cu) globalParticleOffset == totalNumParticles);
         }
         /* dump to adios file */
-        ForEach<typename AdiosFrameType::ValueTypeSeq, adios::ParticleAttribute<bmpl::_1> > writeToAdios;
+        ForEach<typename AdiosFrameType::ValueTypeSeq, adiosinsitu::ParticleAttribute<bmpl::_1> > writeToAdios;
         writeToAdios(params, forward(hostFrame), totalNumParticles);
 
         /* free host memory */

@@ -58,7 +58,7 @@ namespace po = boost::program_options;
 #define ADIOS_SIZE_GLOBAL    "totalSize_"
 #define ADIOS_OFFSET_GLOBAL  "offset_"
 
-#define ADIOS_CMD(_cmd)                                                        \
+#define ADIOS_iCMD(_cmd)                                                        \
 {                                                                              \
     int _err_code = _cmd;                                                      \
     if (_err_code != ADIOS_SUCCESS)                                            \
@@ -67,7 +67,7 @@ namespace po = boost::program_options;
                   << __FILE__ << ":" << __LINE__ << adios_errmsg();            \
 }
 
-#define ADIOS_CMD_EXPECT_NONZERO(_cmd)                                         \
+#define ADIOS_iCMD_EXPECT_NONZERO(_cmd)                                         \
 {                                                                              \
     int _err_code = _cmd;                                                      \
     if (_err_code == 0)                                                        \
