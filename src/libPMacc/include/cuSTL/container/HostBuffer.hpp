@@ -20,8 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONTAINER_HOSTBUFFER_HPP
-#define CONTAINER_HOSTBUFFER_HPP
+#pragma once
 
 #include <boost/type_traits/is_same.hpp>
 #include <cuSTL/container/allocator/HostMemAllocator.hpp>
@@ -51,7 +50,8 @@ private:
     typedef CartBuffer<Type, dim, allocator::HostMemAllocator<Type, dim>,
                                   copier::H2HCopier<dim>,
                                   assigner::HostMemAssigner<dim> > Base;
-protected:
+///\todo: make protected
+public:
     HostBuffer() {}
 public:
     /* constructors
@@ -85,4 +85,3 @@ public:
 } // container
 } // PMacc
 
-#endif // CONTAINER_HOSTBUFFER_HPP

@@ -18,6 +18,8 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
+
 #include <stdint.h>
 #include "math/Vector.hpp"
 #include "math/MapTuple.hpp"
@@ -47,7 +49,6 @@ BOOST_PP_ENUM_TRAILING(N, NORMAL_ARGS, _)) \
     __shared__ Frame* frame; \
     __shared__ bool isValid; \
     __shared__ uint16_t particlesInSuperCell; \
-    __syncthreads(); /*wait that all shared memory is initialised*/ \
     \
     if(linearThreadIdx == 0) \
     { \

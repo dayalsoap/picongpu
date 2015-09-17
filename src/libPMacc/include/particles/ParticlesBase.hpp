@@ -37,14 +37,20 @@
 namespace PMacc
 {
 
-template<typename T_ParticleDescription, class MappingDesc>
-class ParticlesBase : public SimulationFieldHelper<MappingDesc>
+/* Tag used for marking particle types */
+struct ParticlesTag;
+
+template<typename T_ParticleDescription, class T_MappingDesc>
+class ParticlesBase : public SimulationFieldHelper<T_MappingDesc>
 {
+    typedef T_ParticleDescription ParticleDescription;
+    typedef T_MappingDesc MappingDesc;
+
 public:
 
     /* Type of used particles buffer
      */
-    typedef ParticlesBuffer<T_ParticleDescription, typename MappingDesc::SuperCellSize, MappingDesc::Dim> BufferType;
+    typedef ParticlesBuffer<ParticleDescription, typename MappingDesc::SuperCellSize, MappingDesc::Dim> BufferType;
 
     /* Type of frame in particles buffer
      */
@@ -53,9 +59,12 @@ public:
      */
     typedef typename BufferType::ParticleTypeBorder FrameTypeBorder;
 
-    /* TYpe of the particle box which particle buffer create
+    /* Type of the particle box which particle buffer create
      */
     typedef ParticlesBox< FrameType, MappingDesc::Dim> ParticlesBoxType;
+
+    /* Policies for handling particles in guard cells */
+    typedef typename ParticleDescription::HandleGuardRegion HandleGuardRegion;
 
     enum
     {
@@ -63,6 +72,9 @@ public:
         Exchanges = traits::NumberOfExchanges<Dim>::value,
         TileSize = math::CT::volume<typename MappingDesc::SuperCellSize>::type::value
     };
+
+    /* Mark this simulation data as a particle type */
+    typedef ParticlesTag SimulationDataTag;
 
 protected:
 
@@ -170,12 +182,6 @@ public:
         assert(particlesBuffer != NULL);
         return *particlesBuffer;
     }
-
-    /* Communicate particles to neighbor devices.
-     * This method include bashing and insert of particles full
-     * asynchron.
-     */
-    EventTask asyncCommunication(EventTask event);
 
     /* set all internal objects to initial state*/
     virtual void reset(uint32_t currentStep);

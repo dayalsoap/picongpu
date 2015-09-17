@@ -19,10 +19,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-#ifndef SUMCURRENTS_HPP
-#define    SUMCURRENTS_HPP
+#pragma once
 
 #include <iostream>
 
@@ -51,7 +48,6 @@ __global__ void kernelSumCurrents(J_DataBox fieldJ, float3_X* gCurrent, Mapping 
     typedef typename Mapping::SuperCellSize SuperCellSize;
 
     __shared__ float3_X sh_sumJ;
-    __syncthreads(); /*wait that all shared memory is initialised*/
 
     const DataSpace<simDim > threadIndex(threadIdx);
     const int linearThreadIdx = DataSpaceOperations<simDim>::template map<SuperCellSize > (threadIndex);
@@ -200,6 +196,4 @@ private:
 
 }
 
-
-#endif    /* SUMCURRENTS_HPP */
 

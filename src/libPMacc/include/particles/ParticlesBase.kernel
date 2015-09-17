@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Felix Schmitt, Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Felix Schmitt, Heiko Burau, Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -23,7 +23,6 @@
 #include "types.h"
 #include "particles/memory/boxes/ParticlesBox.hpp"
 #include "particles/memory/boxes/PushDataBox.hpp"
-#include "particles/memory/boxes/PopDataBox.hpp"
 #include "particles/memory/boxes/TileDataBox.hpp"
 #include "dimensions/DataSpaceOperations.hpp"
 #include "mappings/kernel/ExchangeMapping.hpp"
@@ -75,7 +74,6 @@ __global__ void kernelShiftParticles( T_ParBox pb, Mapping mapper )
     __shared__ bool isFrameValid;
     __shared__ bool mustShift;
 
-    __syncthreads(); /*wait that all shared memory is initialized */
     DataSpace<dim> superCellIdx = mapper.getSuperCellIndex( DataSpace<dim> (blockIdx) );
     const uint32_t linearThreadIdx = threadIdx.x;
 
@@ -247,7 +245,6 @@ __global__ void kernelFillGapsLastFrame(ParticlesBox<FRAME, Mapping::Dim> pb, Ma
 
     __shared__ int srcGap;
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
 
     if (threadIdx.x == 0)
     {
@@ -318,7 +315,6 @@ __global__ void kernelFillGaps(ParticlesBox<FRAME, Mapping::Dim> pb, Mapping map
     __shared__ int counterGaps;
     __shared__ int counterParticles;
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
 
     if (threadIdx.x == 0)
     {
@@ -429,7 +425,6 @@ __global__ void kernelDeleteParticles(T_ParticleBox pb,
     __shared__ FrameType *frame;
     __shared__ bool isValid;
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
 
     if (linearThreadIdx == 0)
     {
@@ -479,8 +474,6 @@ __global__ void kernelBashParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
     __shared__ bool isValid;
     __shared__ bool hasMemory;
     __shared__ TileDataBox<BORDER> tmpBorder;
-
-    __syncthreads(); /*wait that all shared memory is initialised*/
 
     if (threadIdx.x == 0)
     {
@@ -565,13 +558,12 @@ __global__ void kernelInsertParticles(ParticlesBox<FRAME, Mapping::Dim> pb,
     __shared__ int elementCount;
     __shared__ TileDataBox<BORDER> tmpBorder;
 
-    __syncthreads(); /*wait that all shared memory is initialised*/
 
     DataSpace < Mapping::Dim - 1 > superCell;
 
     if (threadIdx.x == 0)
     {
-        tmpBorder = border.pop(superCell);
+        tmpBorder = border.get(blockIdx.x,superCell);
         elementCount = tmpBorder.getSize();
         if (elementCount > 0)
         {

@@ -18,10 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-#ifndef LIVEVIEWCLIENT_HPP
-#define    LIVEVIEWCLIENT_HPP
+#pragma once
 
 #include "plugins/output/sockets/SocketConnector.hpp"
 
@@ -42,19 +39,19 @@ namespace picongpu
     struct uint8_t3
     {
 
-        uint8_t3(uint8_t x, uint8_t y, uint8_t z) : x(x), y(y), z(z)
+        uint8_t3(uint8_t x, uint8_t y, uint8_t z) : m_x(x), m_y(y), m_z(z)
         {
         }
 
-        uint8_t x;
-        uint8_t y;
-        uint8_t z;
+        uint8_t m_x;
+        uint8_t m_y;
+        uint8_t m_z;
     };
 
     struct LiveViewClient
     {
 
-        LiveViewClient(std::string ip, std::string port) : socket(NULL), ip(ip), port(port)
+        LiveViewClient(std::string ip, std::string port) : socket(NULL), m_ip(ip), m_port(port)
         {
         }
 
@@ -71,8 +68,8 @@ namespace picongpu
 
     private:
         SocketConnector *socket;
-        std::string ip;
-        std::string port;
+        std::string m_ip;
+        std::string m_port;
     };
 
     template<>
@@ -83,7 +80,7 @@ namespace picongpu
                                                                                    )
     {
         if (!socket)
-            socket = new SocketConnector(ip, port);
+            socket = new SocketConnector(m_ip, m_port);
 
         size_t elems = MessageHeader::bytes + header.window.size.productOfComponents() * sizeof (uint8_t3);
         char *array = new char[elems];
@@ -104,15 +101,13 @@ namespace picongpu
         {
             for (int x = 0; x < size.x(); ++x)
             {
-                smallPic[y ][x].x = (uint8_t) (data[y ][x ].x() * 255.f);
-                smallPic[y ][x].y = (uint8_t) (data[y ][x ].y() * 255.f);
-                smallPic[y ][x].z = (uint8_t) (data[y ][x ].z() * 255.f);
+                smallPic[y ][x].m_x = (uint8_t) (data[y ][x ].x() * 255.f);
+                smallPic[y ][x].m_y = (uint8_t) (data[y ][x ].y() * 255.f);
+                smallPic[y ][x].m_z = (uint8_t) (data[y ][x ].z() * 255.f);
             }
         }
         socket->send(array, elems);
         delete[] array;
     }
 }
-
-#endif    /* LIVEVIEWCLIENT_HPP */
 

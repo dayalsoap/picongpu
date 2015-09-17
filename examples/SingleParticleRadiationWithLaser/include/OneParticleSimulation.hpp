@@ -18,10 +18,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
-
-
-#ifndef ONEPARTICLESIMULATION_HPP
-#define    ONEPARTICLESIMULATION_HPP
+#pragma once
 
 #include "simulation_defines.hpp"
 #include "Environment.hpp"
@@ -50,6 +47,7 @@
 
 #include "plugins/PluginController.hpp"
 #include "particles/ParticlesInitOneParticle.hpp"
+#include "communication/AsyncCommunication.hpp"
 
 
 namespace picongpu
@@ -142,7 +140,7 @@ public:
         //std::cout << "Begin update Electrons" << std::endl;
         particleStorage[TypeAsIdentifier<PIC_Electrons>()]->update(currentStep);
         //std::cout << "End update Electrons" << std::endl;
-        EventTask eRecvElectrons = particleStorage[TypeAsIdentifier<PIC_Electrons>()]->asyncCommunication(__getTransactionEvent());
+        EventTask eRecvElectrons = communication::asyncCommunication(*particleStorage[TypeAsIdentifier<PIC_Electrons>()], __getTransactionEvent());
         EventTask eElectrons = __endTransaction();
 #endif
 
@@ -192,6 +190,4 @@ public:
 };
 
 } // namespace picongpu
-
-#endif    /* ONEPARTICLESIMULATION_HPP */
 

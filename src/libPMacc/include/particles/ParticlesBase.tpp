@@ -1,5 +1,5 @@
 /**
- * Copyright 2013-2014 Heiko Burau, Rene Widera
+ * Copyright 2013-2015 Heiko Burau, Rene Widera
  *
  * This file is part of libPMacc.
  *
@@ -20,6 +20,7 @@
  * If not, see <http://www.gnu.org/licenses/>.
  */
 
+#pragma once
 
 #include "Environment.hpp"
 #include "eventSystem/EventSystem.hpp"
@@ -88,32 +89,19 @@ namespace PMacc
         if (particlesBuffer->hasReceiveExchange(exchangeType))
         {
 
-            dim3 grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getHostCurrentSize());
-            if (grid.x != 0)
+            size_t grid(particlesBuffer->getReceiveExchangeStack(exchangeType).getHostCurrentSize());
+            if (grid != 0)
             {
-              //  std::cout<<"insert = "<<grid.x()<<std::endl;
                 ExchangeMapping<GUARD, MappingDesc> mapper(this->cellDescription, exchangeType);
                 __cudaKernel(kernelInsertParticles)
                         (grid, TileSize)
                         (particlesBuffer->getDeviceParticleBox(),
                         particlesBuffer->getReceiveExchangeStack(exchangeType).getDeviceExchangePopDataBox(),
                         mapper);
-                }
+            }
         }
     }
 
-    template<typename T_ParticleDescription, class MappingDesc>
-    EventTask ParticlesBase<T_ParticleDescription, MappingDesc>::asyncCommunication(EventTask event)
-    {
-        EventTask ret;
-        __startTransaction(event);
-        Environment<>::get().ParticleFactory().createTaskParticlesReceive(*this);
-        ret = __endTransaction();
-
-        __startTransaction(event);
-        Environment<>::get().ParticleFactory().createTaskParticlesSend(*this);
-        ret += __endTransaction();
-        return ret;
-    }
-
 } //namespace PMacc
+
+#include "particles/AsyncCommunicationImpl.hpp"

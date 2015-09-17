@@ -1,5 +1,6 @@
 /**
- * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz
+ * Copyright 2013-2015 Heiko Burau, Rene Widera, Benjamin Worpitz,
+ *                     Alexander Grund
  *
  * This file is part of libPMacc.
  *
@@ -19,6 +20,8 @@
  * and the GNU Lesser General Public License along with libPMacc.
  * If not, see <http://www.gnu.org/licenses/>.
  */
+
+#pragma once
 
 #include "cuSTL/container/allocator/tag.h"
 #include "eventSystem/EventSystem.hpp"
@@ -129,9 +132,12 @@ template<typename Type, int T_dim, typename Allocator, typename Copier, typename
 CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::CartBuffer
 (BOOST_RV_REF(CartBuffer<Type COMMA T_dim COMMA Allocator COMMA Copier COMMA Assigner>) other) : refCount(NULL)
 {
-    this->dataPointer = 0;
-    this->refCount = 0;
-    *this = other;
+    this->dataPointer = other.dataPointer;
+    this->refCount = other.refCount;
+    this->_size = other._size;
+    this->pitch = other.pitch;
+    other.dataPointer = NULL;
+    other.refCount = NULL;
 }
 
 template<typename Type, int T_dim, typename Allocator, typename Copier, typename Assigner>
@@ -187,9 +193,10 @@ CartBuffer<Type, T_dim, Allocator, Copier, Assigner>::operator=
     exit();
     this->dataPointer = rhs.dataPointer;
     this->refCount = rhs.refCount;
-    (*this->refCount)++;
     this->_size = rhs._size;
     this->pitch = rhs.pitch;
+    rhs.dataPointer = NULL;
+    rhs.refCount = NULL;
     return *this;
 }
 
