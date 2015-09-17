@@ -268,7 +268,7 @@ namespace picongpu
 
 			/* already add the sim_unit attribute so `adios_group_size` calculates
 			 * the reservation for the buffer correctly */
-                        /*Flexpath adapt*/
+                        /*Flexpath adaptation*/
 			/*AdiosDoubleType adiosDoubleType;
 
 			ADIOS_iCMD(adios_define_attribute(params->adiosGroupHandle,
@@ -379,7 +379,7 @@ namespace picongpu
 		{
 		    /* register our plugin during creation */
 		    Environment<>::get().PluginConnector().registerPlugin(this);
-		    fprintf(stderr, "adiosinsitu Plugin instantiated.\n");
+		    fprintf(stderr, "Plugin instantiated.\n");
 		}
 
 	    std::string pluginGetName() const
@@ -389,7 +389,38 @@ namespace picongpu
 
 	    void notify(uint32_t currentStep)
 		{
-		    notificationReceived(currentStep);
+		    const PMacc::Selection<simDim>& localDomain =
+			Environment<simDim>::get().SubGrid().getLocalDomain();
+		    mThreadParams.currentStep = currentStep;
+		    mThreadParams.cellDescription = this->cellDescription;
+		    double start = MPI_Wtime();
+		    __getTransactionEvent().waitForFinished();
+		    double end = MPI_Wtime();
+		    /* notification callback for simulation step currentStep
+		     * called every notifyPeriod steps */
+		    fprintf(stderr, "Jai's plugin notified %lf.\n", end-start);
+                    /*Flexpath adapt*/
+		    if (currentStep == INITIAL_STEP) {
+			// define field vars.
+			    /* create adios group for fields without statistics */
+			    ADIOS_iCMD(adios_declare_group(&(mThreadParams.adiosGroupHandle),
+			            ADIOS_GROUP_NAME,
+				    (mThreadParams.adiosBasePath + std::string("iteration")).c_str(),
+	                            adios_flag_no));
+                        
+			    /* select MPI method, #OSTs and #aggregators */
+			    ADIOS_iCMD(adios_select_method(mThreadParams.adiosGroupHandle,
+				      "MPI_AGGREGATE", flexpathTransportParams.c_str(), ""));
+
+			// define species vars.
+			// define particle vars.
+		    }
+		    // pull data from GPU
+		    // write it.
+
+		    if (currentStep == FINAL_STEP) {
+			//finalize.
+		    }
 		}
 
 	    void pluginRegisterHelp(po::options_description& desc)
@@ -402,35 +433,11 @@ namespace picongpu
 
 	    void setMappingDescription(MappingDesc *cellDescription)
 		{
-		    this->cellDescription = cellDescription;
 		}
 
 	private:
-	    void notificationReceived(uint32_t currentStep)
-		{
-		    const PMacc::Selection<simDim>& localDomain =
-			Environment<simDim>::get().SubGrid().getLocalDomain();
-		    mThreadParams.currentStep = currentStep;
-		    mThreadParams.cellDescription = this->cellDescription;
-		    double start = MPI_Wtime();
-		    __getTransactionEvent().waitForFinished();
-		    double end = MPI_Wtime();
-		    /* notification callback for simulation step currentStep
-		     * called every notifyPeriod steps */
-		    fprintf(stderr, "Jai's plugin notified %lf.\n", end-start);
-		    if (mThreadParams.hasInitialized == 0) {
-			fprintf(stderr, "has not initialized.\n");
-			// define field vars.
-			// define species vars.
-			// define particle vars.
-			mThreadParams.hasInitialized = 1;
-		    } else {
-			fprintf(stderr, "Has initialized already.\n");
-		    }
-		    // pull data from GPU
-		    // write it.
+	    uint32_t notifyPeriod;
 
-		}
 	    void pluginLoad()
 		{
 		    /* called when plugin is loaded, command line flags are available here
@@ -440,8 +447,6 @@ namespace picongpu
 
 	    void pluginUnload()
 		{
-		    // add finalize stuff here?
-		    fprintf(stderr, "adiosinsitu pluginunload called.\n");
 		    /* called when plugin is unloaded, cleanup here */
 		}
 
@@ -516,14 +521,14 @@ namespace picongpu
 		    particleOffset.y() -= threadParams->window.globalDimensions.offset.y();
 
 		    /* create adios group for fields without statistics */
-		    ADIOS_CMD(adios_declare_group(&(threadParams->adiosGroupHandle),
+		    /*ADIOS_CMD(adios_declare_group(&(threadParams->adiosGroupHandle),
 						  ADIOS_GROUP_NAME,
 						  (threadParams->adiosBasePath + std::string("iteration")).c_str(),
-						  adios_flag_no));
+						  adios_flag_no));*/ /*flexpath adapt*/
 
-		    /* select MPI method, #OSTs and #aggregators */
-		    ADIOS_CMD(adios_select_method(threadParams->adiosGroupHandle,
-						  "MPI_AGGREGATE", mpiTransportParams.c_str(), ""));
+		    /* select MPI method, #OSTs and #aggregators */ /*flexpath adapt*/
+		    /*ADIOS_CMD(adios_select_method(threadParams->adiosGroupHandle,
+						  "MPI_AGGREGATE", mpiTransportParams.c_str(), ""));*/
 
 		    threadParams->fieldsOffsetDims = precisionCast<uint64_t>(localDomain.offset);
 
@@ -611,7 +616,7 @@ namespace picongpu
 		    return NULL;
 		}
 	    
-	    uint32_t notifyPeriod;
+
 	    ThreadParams mThreadParams;
 	    MappingDesc *cellDescription;
 	    //uint32_t notifyPeriod;
