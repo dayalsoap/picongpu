@@ -22,7 +22,7 @@
 
 #pragma once
 
-#include "allocator/EmptyAllocator.hpp"
+#include "cuSTL/container/allocator/EmptyAllocator.hpp"
 #include "cuSTL/cursor/BufferCursor.hpp"
 #include "cuSTL/cursor/navigator/CartNavigator.hpp"
 #include "cuSTL/cursor/accessor/PointerAccessor.hpp"
@@ -62,7 +62,7 @@ class CartBuffer
 public:
     typedef Type type;
     typedef CartBuffer<Type, T_dim, Allocator, Copier, Assigner> This;
-    static const int dim = T_dim;
+    BOOST_STATIC_CONSTEXPR int dim = T_dim;
     typedef cursor::BufferCursor<Type, T_dim> Cursor;
     typedef typename Allocator::tag memoryTag;
 public:
@@ -105,7 +105,6 @@ public:
              math::Int<T_dim> b = math::Int<T_dim>(0)) const;
 
     /* assign value to each datum */
-    PMACC_NO_NVCC_HDWARNING
     HDINLINE void assign(const Type& value);
 
     /* get a cursor at the container's origin cell */

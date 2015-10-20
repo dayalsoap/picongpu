@@ -70,18 +70,30 @@ MAMC_HOST void finalizeHeap(                                                    
  */
 #define MALLOCMC_AVAILABLESLOTS()                                               \
 namespace mallocMC{                                                             \
-MAMC_HOST MAMC_ACCELERATOR                                                       \
-unsigned getAvailableSlots(                                                    \
-    size_t slotSize,                                                           \
-    mallocMCType &p = mallocMCGlobalObject){                                     \
-    return p.getAvailableSlots(slotSize);                                      \
-}                                                                              \
-MAMC_HOST MAMC_ACCELERATOR                                                       \
-bool providesAvailableSlots(){                                                 \
+MAMC_HOST                                                                       \
+unsigned getAvailableSlots(                                                     \
+    size_t slotSize,                                                            \
+    mallocMCType &p = mallocMCGlobalObject){                                    \
+    return p.getAvailableSlots(slotSize);                                       \
+}                                                                               \
+MAMC_ACCELERATOR                                                                \
+unsigned getAvailableSlotsAccelerator(                                          \
+    size_t slotSize,                                                            \
+    mallocMCType &p = mallocMCGlobalObject){                                    \
+    return p.getAvailableSlotsAccelerator(slotSize);                            \
+}                                                                               \
+MAMC_HOST MAMC_ACCELERATOR                                                      \
+bool providesAvailableSlots(){                                                  \
     return Traits<mallocMCType>::providesAvailableSlots;                        \
-}                                                                              \
+}                                                                               \
 } /* end namespace mallocMC */
 
+
+/** __THROW is defined in Glibc so it is not available on all platforms.
+ */
+#ifndef __THROW
+  #define __THROW
+#endif 
 
 /** Create the functions malloc() and free() inside a namespace
  *

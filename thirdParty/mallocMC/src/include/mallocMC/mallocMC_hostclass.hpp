@@ -52,10 +52,9 @@ namespace mallocMC{
    * bool providesAvailableSlots: declares if the allocator implements a useful
    * version of getAvailableSlots().
    */
-  template <class T>
-  class  Traits : public T{
-    public:
-    static const bool providesAvailableSlots = T::CreationPolicy::providesAvailableSlots::value;
+  template <class T_Allocator>
+  struct  Traits{
+    static const bool providesAvailableSlots = T_Allocator::CreationPolicy::providesAvailableSlots::value;
   };
 
   class HeapInfo{
@@ -63,6 +62,49 @@ namespace mallocMC{
       void* p;
       size_t size;
   };
+
+  namespace detail{
+
+    /**
+     * @brief Template class to call getAvailableSlots[Host|Accelerator] if the CreationPolicy provides it.
+     *
+     * Returns 0 else.
+     *
+     * @tparam T_Allocator The type of the Allocator to be used
+     * @tparam T_isHost True for the host call, false for the accelerator call
+     * @tparam T_providesAvailableSlots If the CreationPolicy provides getAvailableSlots[Host|Accelerator] (auto filled, do not set)
+     */
+    template<class T_Allocator, bool T_isHost, bool T_providesAvailableSlots = Traits<T_Allocator>::providesAvailableSlots >
+    struct GetAvailableSlotsIfAvail
+    {
+      MAMC_HOST MAMC_ACCELERATOR
+      static unsigned
+      getAvailableSlots(size_t slotSize, T_Allocator &){
+        return 0;
+      }
+    };
+
+    template<class T_Allocator>
+    struct GetAvailableSlotsIfAvail<T_Allocator, true, true>
+    {
+      MAMC_HOST
+      static unsigned
+      getAvailableSlots(size_t slotSize, T_Allocator& alloc){
+          return alloc.getAvailableSlotsHost(slotSize, alloc);
+      }
+    };
+
+    template<class T_Allocator>
+    struct GetAvailableSlotsIfAvail<T_Allocator, false, true>
+    {
+      MAMC_ACCELERATOR
+      static unsigned
+      getAvailableSlots(size_t slotSize, T_Allocator& alloc){
+          return alloc.getAvailableSlotsAccelerator(slotSize);
+      }
+    };
+
+  }
 
   /**
    * @brief "HostClass" that combines all policies to a useful allocator
@@ -141,19 +183,6 @@ namespace mallocMC{
         heapInfos.p=pool;
         heapInfos.size=size;
 
-        /*
-        * This is a workaround for a bug with getAvailSlotsPoly:
-        * Due to some problems with conditional compilation (possibly a CUDA bug),
-        * this host function must explicitly be used from inside a host
-        * function at least once. Doing it here guarantees that it is executed
-        * and that this execution happens on the host. Usually, simply defining
-        * this inside a host function (without actually executing it) would be
-        * sufficient. However, due to the template nature of policy based
-        * design, functions are only compiled if they are actually used.
-        */
-        if(CreationPolicy::providesAvailableSlots::value)
-          CreationPolicy::getAvailableSlotsHost(1024,*this); //actual slot size does not matter
-
         return h;
       }
 
@@ -175,10 +204,20 @@ namespace mallocMC{
       }
 
 
-      // polymorphism over the availability of getAvailableSlots
-      MAMC_HOST MAMC_ACCELERATOR
+      // polymorphism over the availability of getAvailableSlots for calling from the host
+      MAMC_HOST
       unsigned getAvailableSlots(size_t slotSize){
-        return getAvailSlotsPoly(slotSize, boost::mpl::bool_<CreationPolicy::providesAvailableSlots::value>());
+        slotSize = AlignmentPolicy::applyPadding(slotSize);
+
+        return detail::GetAvailableSlotsIfAvail<Allocator, true>::getAvailableSlots(slotSize, *this);
+      }
+
+      // polymorphism over the availability of getAvailableSlots for calling from the accelerator
+      MAMC_ACCELERATOR
+      unsigned getAvailableSlotsAccelerator(size_t slotSize){
+        slotSize = AlignmentPolicy::applyPadding(slotSize);
+
+        return detail::GetAvailableSlotsIfAvail<Allocator, false>::getAvailableSlots(slotSize, *this);
       }
 
       MAMC_HOST
@@ -188,22 +227,7 @@ namespace mallocMC{
         return v;
       }
 
-    private:
-      MAMC_HOST MAMC_ACCELERATOR
-      unsigned getAvailSlotsPoly(size_t slotSize, boost::mpl::bool_<false>){
-        return 0;
-      }
-
-      MAMC_HOST MAMC_ACCELERATOR
-      unsigned getAvailSlotsPoly(size_t slotSize, boost::mpl::bool_<true>){
-        slotSize = AlignmentPolicy::applyPadding(slotSize);
-#ifdef __CUDA_ARCH__
-        return CreationPolicy::getAvailableSlotsAccelerator(slotSize);
-#else
-        return CreationPolicy::getAvailableSlotsHost(slotSize,*this);
-#endif
-      }
-
   };
 
 } //namespace mallocMC
+
